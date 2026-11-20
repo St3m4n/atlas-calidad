@@ -1,0 +1,16 @@
+# Dependencias
+node_modules/
+**/node_modules/
+
+# Secretos locales: no publicar
+.env
+.env.sonar
+**/.env
+
+# Resultados generados
+coverage/
+dist/
+playwright-report/
+test-results/
+zap/
+.scannerwork/
