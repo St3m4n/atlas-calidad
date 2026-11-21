@@ -6,6 +6,7 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const { pool } = require("../db");
 const validate = require("../middleware/validate");
+const requireAdmin = require("../middleware/requireAdmin");
 const { createContractSchema, updateContractSchema } = require("../validations/contracts");
 
 const router = express.Router();
@@ -531,23 +532,29 @@ router.delete("/:id/file/:fileId", async (req, res) => {
   }
 });
 
-router.delete("/:id", async (req, res) => {
+// DEF-02: solo un administrador puede eliminar, y solo contratos de su empresa
+router.delete("/:id", requireAdmin, async (req, res) => {
   try {
+    const authUser = req.authUser;
+
+    const propio = await pool.query(
+      `SELECT c.id FROM contratos c
+       JOIN clientes cl ON cl.id = c.cliente_id
+       WHERE c.id = $1 AND cl.empresa_id = $2`,
+      [req.params.id, authUser.empresaId]
+    );
+    if (propio.rows.length === 0)
+      return res.status(404).json({ error: "No encontrado" });
+
     await pool.query("DELETE FROM documentos_contrato WHERE contract_id=$1", [
       req.params.id,
     ]);
-    const result = await pool.query(
-      "DELETE FROM contratos WHERE id=$1 RETURNING *",
-      [req.params.id]
-    );
-    if (result.rows.length === 0)
-      return res.status(404).json({ error: "No encontrado" });
+    await pool.query("DELETE FROM contratos WHERE id=$1", [req.params.id]);
 
-    const authUser = getUserFromAuthHeader(req);
     await pool.query(
       "INSERT INTO auditoria (usuario_id, accion) VALUES ($1, $2)",
       [
-        authUser?.nombreUsuario || null,
+        authUser.nombreUsuario,
         `CONTRATOS_ELIMINAR: eliminó contrato ID ${req.params.id}`,
       ]
     );

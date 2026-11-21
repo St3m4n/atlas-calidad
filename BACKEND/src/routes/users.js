@@ -2,6 +2,7 @@ const express = require("express");
 const { pool } = require("../db");
 const jwt = require("jsonwebtoken");
 const validate = require("../middleware/validate");
+const requireAdmin = require("../middleware/requireAdmin");
 const { createUserSchema, updateUserSchema } = require("../validations/users");
 
 const router = express.Router();
@@ -244,8 +245,18 @@ router.put("/:id", validate(updateUserSchema), async (req, res) => {
   }
 });
 
-router.delete("/:id", async (req, res) => {
+// DEF-02: solo un administrador puede eliminar, y solo usuarios de su empresa
+router.delete("/:id", requireAdmin, async (req, res) => {
   try {
+    const authUser = req.authUser;
+
+    const pertenece = await pool.query(
+      "SELECT 1 FROM empresa_usuarios WHERE usuario_id=$1 AND empresa_id=$2",
+      [req.params.id, authUser.empresaId]
+    );
+    if (pertenece.rows.length === 0)
+      return res.status(404).json({ error: "No encontrado" });
+
     const result = await pool.query(
       "DELETE FROM usuarios WHERE id=$1 RETURNING *",
       [req.params.id]
@@ -253,11 +264,10 @@ router.delete("/:id", async (req, res) => {
     if (result.rows.length === 0)
       return res.status(404).json({ error: "No encontrado" });
 
-    const authUser = getUserFromAuthHeader(req);
     await pool.query(
       "INSERT INTO auditoria (usuario_id, accion) VALUES ($1, $2)",
       [
-        authUser?.nombreUsuario || null,
+        authUser.nombreUsuario,
         `USUARIOS_ELIMINAR: eliminó usuario ID ${req.params.id}`,
       ]
     );

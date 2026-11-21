@@ -2,6 +2,7 @@ const express = require("express");
 const { pool } = require("../db");
 const jwt = require("jsonwebtoken");
 const validate = require("../middleware/validate");
+const requireAdmin = require("../middleware/requireAdmin");
 const {
   createEmpresaUsuarioSchema,
   updateEmpresaUsuarioSchema,
@@ -170,20 +171,21 @@ router.put("/:id", validate(updateEmpresaUsuarioSchema), async (req, res) => {
   }
 });
 
-router.delete("/:id", async (req, res) => {
+// DEF-02: solo un administrador puede eliminar, y solo vínculos de su empresa
+router.delete("/:id", requireAdmin, async (req, res) => {
   try {
+    const authUser = req.authUser;
     const result = await pool.query(
-      "DELETE FROM empresa_usuarios WHERE id=$1 RETURNING *",
-      [req.params.id]
+      "DELETE FROM empresa_usuarios WHERE id=$1 AND empresa_id=$2 RETURNING *",
+      [req.params.id, authUser.empresaId]
     );
     if (result.rows.length === 0)
       return res.status(404).json({ error: "No encontrado" });
 
-    const authUser = getUserFromAuthHeader(req);
     await pool.query(
       "INSERT INTO auditoria (usuario_id, accion) VALUES ($1, $2)",
       [
-        authUser?.nombreUsuario || null,
+        authUser.nombreUsuario,
         `EMPRESA_USUARIOS_ELIMINAR: eliminó vínculo ID ${req.params.id}`,
       ]
     );

@@ -1,6 +1,7 @@
 const express = require('express');
 const { pool } = require('../db');
 const jwt = require('jsonwebtoken');
+const requireAdmin = require('../middleware/requireAdmin');
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'inseguro';
 
@@ -73,14 +74,14 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
+// DEF-02: solo un administrador puede eliminar roles
+router.delete('/:id', requireAdmin, async (req, res) => {
   try {
     const result = await pool.query('DELETE FROM roles WHERE id=$1 RETURNING *', [req.params.id]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'No encontrado' });
 
-    const authUser = getUserFromAuthHeader(req);
     await pool.query('INSERT INTO auditoria (usuario_id, accion) VALUES ($1, $2)', [
-      authUser?.nombreUsuario || null,
+      req.authUser.nombreUsuario,
       `ROLES_ELIMINAR: eliminó rol ID ${req.params.id}`,
     ]);
 

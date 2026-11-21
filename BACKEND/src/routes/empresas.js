@@ -2,6 +2,7 @@ const express = require("express");
 const { pool } = require("../db");
 const jwt = require("jsonwebtoken");
 const validate = require("../middleware/validate");
+const requireAdmin = require("../middleware/requireAdmin");
 const {
   createEmpresaSchema,
   createEmpresaConUsuarioSchema,
@@ -192,8 +193,18 @@ router.put("/:id", validate(updateEmpresaSchema), async (req, res) => {
   }
 });
 
-router.delete("/:id", async (req, res) => {
+// DEF-02: solo un administrador puede eliminar, y solo su propia empresa
+router.delete("/:id", requireAdmin, async (req, res) => {
   try {
+    const authUser = req.authUser;
+
+    if (String(req.params.id) !== String(authUser.empresaId)) {
+      return res.status(403).json({
+        error: "Acción no permitida",
+        glosa: "Solo puedes eliminar la empresa a la que perteneces",
+      });
+    }
+
     const result = await pool.query(
       "DELETE FROM empresas WHERE id=$1 RETURNING *",
       [req.params.id]
@@ -201,11 +212,10 @@ router.delete("/:id", async (req, res) => {
     if (result.rows.length === 0)
       return res.status(404).json({ error: "No encontrado" });
 
-    const authUser = getUserFromAuthHeader(req);
     await pool.query(
       "INSERT INTO auditoria (usuario_id, accion) VALUES ($1, $2)",
       [
-        authUser?.nombreUsuario || null,
+        authUser.nombreUsuario,
         `EMPRESAS_ELIMINAR: eliminó empresa ID ${req.params.id}`,
       ]
     );
