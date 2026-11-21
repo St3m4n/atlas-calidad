@@ -10,4 +10,5 @@ if (!connectionString) {
 }
 
 const pool = new Pool({ connectionString });
+
 module.exports = { pool };

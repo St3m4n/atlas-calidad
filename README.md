@@ -100,4 +100,3 @@ Importante: usa siempre `--env-file .env.sonar`. Si se omite, Docker Compose tom
 - **Puerto ocupado:** cambia `PORT_SONARQUBE` en `.env.sonar` (por ejemplo, a `9001`) y ejecuta `.\sonar.cmd down` y luego `.\sonar.cmd up`.
 - **Si SonarQube no inicia o va muy lento:** revisa `.\sonar.cmd logs`. Suele faltar memoria; en Docker Desktop, en *Settings → Resources*, asígnale al menos 4 GB.
 - **Seguridad:** el token equivale a una contraseña. No subas `.env.sonar` a Git con un token real dentro. La variable `SONAR_ES_BOOTSTRAP_CHECKS_DISABLE` del compose es solo para uso local; no la uses en un servidor real.
-

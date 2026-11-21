@@ -7,7 +7,7 @@ ARG VITE_API_URL=http://localhost:4000
 
 COPY package*.json ./
 
-# Instalación de dependencias con versión fija en el paquete adicional
+# Instalación de dependencias (con versiones fijas en los paquetes extra)
 RUN rm -rf node_modules package-lock.json && \
     npm install && \
     npm install @rollup/rollup-linux-x64-gnu@4 --save-optional && \

@@ -1,4 +1,5 @@
-# Revisa semanalmente librerías, imágenes y acciones de GitHub.
+# Dependabot revisa cada semana si hay versiones nuevas o parches
+# de seguridad y abre un Pull Request por cada actualización.
 version: 2
 updates:
   - package-ecosystem: "npm"
@@ -31,4 +32,4 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
