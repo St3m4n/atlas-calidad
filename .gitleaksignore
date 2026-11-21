@@ -1,0 +1,5 @@
+# Falsos positivos revisados de Gitleaks.
+# sonar.projectKey (St3m4n_atlas-calidad) es el identificador público del proyecto en
+# SonarQube Cloud, no un secreto. La regla generic-api-key lo marca por la palabra "key".
+d8330c3ec712986baeac172382a1876f9d7dc6a5:sonar-project.properties:generic-api-key:5
+sonar-project.properties:generic-api-key:5
