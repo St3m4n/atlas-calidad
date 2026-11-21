@@ -1,0 +1,19 @@
+{
+  "name": "atlas-pruebas-e2e",
+  "version": "1.0.0",
+  "description": "Pruebas de sistema, aceptación y accesibilidad de Atlas",
+  "scripts": {
+    "test": "playwright test",
+    "test:sistema": "playwright test tests/sistema",
+    "test:aceptacion": "playwright test tests/aceptacion",
+    "test:accesibilidad": "playwright test tests/accesibilidad",
+    "reporte": "playwright show-report",
+    "lighthouse:movil": "npx -y lighthouse@12.6.0 http://localhost:3351/login --output=html --output=json --output-path=./lighthouse/login-movil --chrome-flags=--headless=new",
+    "lighthouse:escritorio": "npx -y lighthouse@12.6.0 http://localhost:3351/login --preset=desktop --output=html --output=json --output-path=./lighthouse/login-escritorio --chrome-flags=--headless=new"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
+    "@playwright/test": "^1.56.1"
+  },
+  "private": true
+}

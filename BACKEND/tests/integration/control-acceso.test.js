@@ -43,6 +43,30 @@ describe("RB-4 Un editor no puede eliminar registros", () => {
   });
 });
 
+// DEF-03: OWASP ZAP creó roles basura enviando POST /roles sin token.
+// Se envía un cuerpo vacío: si la ruta estuviera abierta, falla al validar
+// el nombre (500) y no crea ningún rol; protegida, responde 401/403 antes.
+describe("DEF-03 Crear o modificar roles exige ser administrador", () => {
+  test("POST /roles sin token -> 401", async () => {
+    const res = await request(app).post("/roles").send({});
+    expect(res.status).toBe(401);
+  });
+
+  test(`PUT /roles/${ID_INEXISTENTE} sin token -> 401`, async () => {
+    const res = await request(app).put(`/roles/${ID_INEXISTENTE}`).send({});
+    expect(res.status).toBe(401);
+  });
+
+  test("POST /roles con token de editor -> 403", async () => {
+    const token = await iniciarSesion("editor", "editor");
+    const res = await request(app)
+      .post("/roles")
+      .set("Authorization", `Bearer ${token}`)
+      .send({});
+    expect(res.status).toBe(403);
+  });
+});
+
 describe("RB-5 El administrador conserva el acceso", () => {
   test("DELETE /contratos/:id inexistente con token de administrador -> 404", async () => {
     const token = await iniciarSesion("admin", "admin");

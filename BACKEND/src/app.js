@@ -2,6 +2,7 @@ const path = require("path");
 const fs = require("fs");
 const express = require("express");
 const cors = require("cors");
+const helmet = require("helmet");
 const morgan = require("morgan");
 const swaggerUi = require("swagger-ui-express");
 
@@ -20,7 +21,24 @@ const metricasRoutes = require("./routes/metricas");
 
 const app = express();
 
-app.use(cors());
+// Origen del sitio web de Atlas (lo entrega docker-compose)
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3351";
+
+// Encabezados de seguridad (hallazgos de OWASP ZAP y SonarQube S5689).
+// La vista previa de PDF del frontend muestra archivos de la API en un iframe,
+// por eso X-Frame-Options se reemplaza por CSP frame-ancestors, que permite
+// enmarcar la API solo desde el propio sitio de Atlas (anti-clickjacking).
+app.use(
+  helmet({
+    xFrameOptions: false,
+    contentSecurityPolicy: {
+      directives: { frameAncestors: ["'self'", FRONTEND_URL] },
+    },
+  })
+);
+
+// CORS restringido al sitio web de Atlas (antes aceptaba cualquier origen, S5122)
+app.use(cors({ origin: FRONTEND_URL }));
 app.use(express.json());
 app.use(morgan("dev"));
 
