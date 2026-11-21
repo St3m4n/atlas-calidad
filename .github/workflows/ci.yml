@@ -14,13 +14,16 @@ on:
 permissions:
   contents: read
 
+# Todos los jobs usan una versión fija del runner (ubuntu-24.04) y no ubuntu-latest:
+# cuando GitHub movió ubuntu-latest a Ubuntu 26.04, Playwright 1.56.1 dejó de poder
+# instalar sus navegadores y el pipeline falló sin ningún cambio en el código.
 jobs:
   # -------------------------------------------------------------------
   # ETAPA 1 · Revisiones rápidas (se ejecutan en paralelo)
   # -------------------------------------------------------------------
   secretos:
     name: 1a · Secretos (Gitleaks)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
         with:
@@ -33,7 +36,7 @@ jobs:
 
   dockerfiles:
     name: 1b · Dockerfiles (Hadolint)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       # v3.1.0 usa Hadolint 2.12.0, la misma versión de la Actividad 1
@@ -52,7 +55,7 @@ jobs:
   pruebas-codigo:
     name: 2 · Unitarias + Integración (Jest) y SonarQube
     needs: [secretos, dockerfiles]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
         with:
@@ -99,7 +102,7 @@ jobs:
   pruebas-sistema:
     name: 3 · Sistema, aceptación, rendimiento y seguridad
     needs: [pruebas-codigo]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
 
@@ -179,7 +182,7 @@ jobs:
     name: 4 · Publicar imágenes Docker (GHCR)
     needs: [pruebas-sistema]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       packages: write
