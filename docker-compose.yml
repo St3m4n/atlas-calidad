@@ -35,6 +35,10 @@ services:
       - NODE_ENV=${NODE_ENV:-production}
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
       - FRONTEND_URL=http://localhost:${PORT_FRONTEND:-3351}
+      # Límites de peticiones (BACKEND/src/middleware/limites.js); para el perfil
+      # "carga" de k6 (200 personas desde un mismo equipo) se debe subir el primero
+      - LIMITE_PETICIONES_POR_MINUTO=${LIMITE_PETICIONES_POR_MINUTO:-1000}
+      - LIMITE_LOGIN_FALLIDOS=${LIMITE_LOGIN_FALLIDOS:-20}
     ports:
       - "${PORT_BACKEND:-4451}:4000"
     depends_on:

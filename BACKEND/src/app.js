@@ -5,8 +5,10 @@ const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const swaggerUi = require("swagger-ui-express");
+const rateLimit = require("express-rate-limit");
 
 const { pool } = require("./db");
+const { opcionesLimiteGeneral } = require("./middleware/limites");
 
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/users");
@@ -39,6 +41,9 @@ app.use(
 
 // CORS restringido al sitio web de Atlas (antes aceptaba cualquier origen, S5122)
 app.use(cors({ origin: FRONTEND_URL }));
+// Límite de peticiones por IP para toda la API (CodeQL js/missing-rate-limiting).
+// Va antes de las rutas para que las proteja a todas.
+app.use(rateLimit(opcionesLimiteGeneral()));
 app.use(express.json());
 app.use(morgan("dev"));
 
