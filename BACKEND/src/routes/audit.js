@@ -1,6 +1,7 @@
 const express = require("express");
 const { pool } = require("../db");
 const jwt = require("jsonwebtoken");
+const { requireAuth } = require("../middleware/auth");
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || "inseguro";
@@ -16,14 +17,16 @@ function getUserFromAuthHeader(req) {
   }
 }
 
-router.post("/", async (req, res) => {
+// DEF-002: solo un usuario con sesión escribe en la bitácora, y queda registrado
+// con el nombre de su token (antes cualquiera podía escribir sin iniciar sesión)
+router.post("/", requireAuth, async (req, res) => {
   const { accion, detalles } = req.body;
   try {
-    const authUser = getUserFromAuthHeader(req);
+    const authUser = req.authUser;
     const actionText = detalles ? `${accion}: ${detalles}` : accion;
     const result = await pool.query(
       "INSERT INTO auditoria (usuario_id, accion) VALUES ($1, $2) RETURNING *",
-      [authUser?.nombreUsuario || null, actionText]
+      [authUser.nombreUsuario, actionText]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {

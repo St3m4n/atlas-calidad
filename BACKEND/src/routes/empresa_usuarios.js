@@ -2,7 +2,7 @@ const express = require("express");
 const { pool } = require("../db");
 const jwt = require("jsonwebtoken");
 const validate = require("../middleware/validate");
-const requireAdmin = require("../middleware/requireAdmin");
+const { requireAuth, requireAdmin } = require("../middleware/auth");
 const {
   createEmpresaUsuarioSchema,
   updateEmpresaUsuarioSchema,
@@ -23,17 +23,11 @@ function getUserFromAuthHeader(req) {
   }
 }
 
-router.post("/", validate(createEmpresaUsuarioSchema), async (req, res) => {
+// DEF-05 (RB-5): solo un administrador agrega usuarios a su empresa
+// (antes bastaba cualquier sesión, incluida la de un editor)
+router.post("/", requireAdmin, validate(createEmpresaUsuarioSchema), async (req, res) => {
   try {
-    const authUser = getUserFromAuthHeader(req);
-
-    if (!authUser || !authUser.empresaId) {
-      return res.status(401).json({
-        error: "No autorizado",
-        glosa: "Token inválido o sin empresa asociada",
-      });
-    }
-
+    const authUser = req.authUser;
     const empresaId = authUser.empresaId;
     let usuarioId;
     const { usuario_id, rol_id, nombre_usuario, contrasena_hash, correo } =
@@ -125,11 +119,12 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
+// DEF-05 (RB-2): solo se entregan vínculos de la empresa del usuario
+router.get("/:id", requireAuth, async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT * FROM empresa_usuarios WHERE id=$1",
-      [req.params.id]
+      "SELECT * FROM empresa_usuarios WHERE id=$1 AND empresa_id=$2",
+      [req.params.id, req.authUser.empresaId]
     );
     if (result.rows.length === 0)
       return res.status(404).json({ error: "No encontrado" });
@@ -143,17 +138,22 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.put("/:id", validate(updateEmpresaUsuarioSchema), async (req, res) => {
+// DEF-05: solo el administrador modifica vínculos, y solo dentro de su empresa
+// (antes, sin sesión, se podía mover a cualquier usuario a otra empresa como administrador)
+router.put("/:id", requireAdmin, validate(updateEmpresaUsuarioSchema), async (req, res) => {
   const { empresa_id, usuario_id, rol_id } = req.body;
   try {
+    const authUser = req.authUser;
+    if (Number(empresa_id) !== Number(authUser.empresaId)) {
+      return res.status(404).json({ error: "No encontrado" });
+    }
     const result = await pool.query(
-      "UPDATE empresa_usuarios SET empresa_id=$1, usuario_id=$2, rol_id=$3 WHERE id=$4 RETURNING *",
-      [empresa_id, usuario_id, rol_id, req.params.id]
+      "UPDATE empresa_usuarios SET usuario_id=$1, rol_id=$2 WHERE id=$3 AND empresa_id=$4 RETURNING *",
+      [usuario_id, rol_id, req.params.id, authUser.empresaId]
     );
     if (result.rows.length === 0)
       return res.status(404).json({ error: "No encontrado" });
 
-    const authUser = getUserFromAuthHeader(req);
     await pool.query(
       "INSERT INTO auditoria (usuario_id, accion) VALUES ($1, $2)",
       [

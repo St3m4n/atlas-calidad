@@ -6,7 +6,7 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const { pool } = require("../db");
 const validate = require("../middleware/validate");
-const requireAdmin = require("../middleware/requireAdmin");
+const { requireAuth, requireAdmin } = require("../middleware/auth");
 const { createContractSchema, updateContractSchema } = require("../validations/contracts");
 
 const router = express.Router();
@@ -25,7 +25,8 @@ function getUserFromAuthHeader(req) {
   }
 }
 
-router.post("/", upload.array("files", 10), validate(createContractSchema), async (req, res) => {
+// DEF-05: crear un contrato exige sesión, y el cliente debe ser de la empresa del usuario
+router.post("/", requireAuth, upload.array("files", 10), validate(createContractSchema), async (req, res) => {
   const {
     cliente_id,
     titulo,
@@ -35,6 +36,14 @@ router.post("/", upload.array("files", 10), validate(createContractSchema), asyn
   } = req.body;
   try {
     const clientIdNum = Number(cliente_id);
+    const clienteDeLaEmpresa = await pool.query(
+      "SELECT 1 FROM clientes WHERE id = $1 AND empresa_id = $2",
+      [clientIdNum, req.authUser.empresaId]
+    );
+    if (clienteDeLaEmpresa.rows.length === 0) {
+      return res.status(404).json({ error: "Cliente no encontrado" });
+    }
+
     const contractInsert = await pool.query(
       "INSERT INTO contratos (cliente_id, titulo, descripcion, fecha_inicio, fecha_fin) VALUES ($1, $2, $3, $4, $5) RETURNING *",
       [clientIdNum, titulo, descripcion, fecha_inicio, fecha_fin]
@@ -55,11 +64,10 @@ router.post("/", upload.array("files", 10), validate(createContractSchema), asyn
     }
 
     const result = contractInsert;
-    const authUser = getUserFromAuthHeader(req);
     await pool.query(
       "INSERT INTO auditoria (usuario_id, accion) VALUES ($1, $2)",
       [
-        authUser?.nombreUsuario || null,
+        req.authUser.nombreUsuario,
         `CONTRATOS_CREAR: creó contrato ${titulo} para cliente ${cliente_id}`,
       ]
     );
@@ -261,11 +269,16 @@ router.get("/dashboard", async (req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
+// DEF-003: exige sesión y solo entrega contratos de clientes de la empresa del
+// usuario; si el contrato es de otra empresa responde 404 para no revelar que existe
+router.get("/:id", requireAuth, async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT id, cliente_id, titulo, descripcion, fecha_inicio, fecha_fin, created_at FROM contratos WHERE id=$1",
-      [req.params.id]
+      `SELECT c.id, c.cliente_id, c.titulo, c.descripcion, c.fecha_inicio, c.fecha_fin, c.created_at
+       FROM contratos c
+       INNER JOIN clientes cl ON cl.id = c.cliente_id
+       WHERE c.id = $1 AND cl.empresa_id = $2`,
+      [req.params.id, req.authUser.empresaId]
     );
     if (result.rows.length === 0)
       return res.status(404).json({ error: "No encontrado" });
