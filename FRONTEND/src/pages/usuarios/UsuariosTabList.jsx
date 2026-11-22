@@ -116,6 +116,7 @@ export default function UsuariosTabList({ items, onDelete }) {
                   color="primary"
                   size="small"
                   data-testid={`button-usuario-editar-${row.original.id}`}
+                  aria-label={`Editar usuario ${row.original.nombre_usuario}`}
                   onClick={() =>
                     navigate(`/usuarios/${row.original.id}/editar`)
                   }
@@ -133,6 +134,7 @@ export default function UsuariosTabList({ items, onDelete }) {
                   color="error"
                   size="small"
                   data-testid={`button-usuario-eliminar-${row.original.id}`}
+                  aria-label={`Eliminar usuario ${row.original.nombre_usuario}`}
                   onClick={() =>
                     handleDeleteClick(
                       row.original.id,

@@ -8,7 +8,7 @@ const theme = createTheme({
   },
   typography: {
     fontFamily: "Poppins, system-ui, Avenir, Helvetica, Arial, sans-serif",
-    fontSize: 14, // Reducido de 14px (default) a 12px (2pt menos)
+    fontSize: 14, // valor por defecto de MUI: con la raíz en 16 px el texto normal mide 16 px (DEF-011)
     h5: { fontWeight: 700 },
     h6: { fontWeight: 600 },
   },

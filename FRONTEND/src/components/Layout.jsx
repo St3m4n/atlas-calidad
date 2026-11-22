@@ -1,4 +1,6 @@
+import { useState } from "react";
 import {
+  AppBar,
   Avatar,
   Box,
   Container,
@@ -11,6 +13,10 @@ import {
   Paper,
   Button,
   Stack,
+  IconButton,
+  Toolbar,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
@@ -21,6 +27,7 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import HistoryIcon from "@mui/icons-material/History";
 import EditIcon from "@mui/icons-material/Edit";
 import LogoutIcon from "@mui/icons-material/Logout";
+import MenuIcon from "@mui/icons-material/Menu";
 import Logo from "../assets/logo.svg";
 
 const drawerWidth = 240;
@@ -29,6 +36,11 @@ export default function Layout() {
   const { role, logout, user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  // OBS-04: en pantallas chicas (celular y tablet) el menú lateral fijo dejaba
+  // «Cerrar sesión» fuera de la vista; ahí se usa una barra superior y un menú que se abre
+  const theme = useTheme();
+  const pantallaChica = useMediaQuery(theme.breakpoints.down("md"));
+  const [menuAbierto, setMenuAbierto] = useState(false);
 
   const menuItems = [
     { to: "/home", label: "Inicio", icon: <HomeIcon /> },
@@ -64,7 +76,8 @@ export default function Layout() {
       </Box>
 
       {/* Listado de accesos */}
-      <List sx={{ flex: 1, py: 2 }}>
+      {/* DEF-010: se usa <nav>; un <ul> solo puede contener <li> (axe "list") */}
+      <List component="nav" aria-label="Menú principal" sx={{ flex: 1, py: 2 }}>
         {[...menuItems].map((item) => {
           const active = location.pathname.startsWith(item.to);
           return (
@@ -76,6 +89,7 @@ export default function Layout() {
               data-testid={`link-nav-${item.label
                 .toLowerCase()
                 .replace(/\s+/g, "-")}`}
+              onClick={() => setMenuAbierto(false)}
               sx={{ mx: 1, mb: 0.5, borderRadius: 1 }}
             >
               <ListItemIcon className="!text-primary">{item.icon}</ListItemIcon>
@@ -201,10 +215,39 @@ export default function Layout() {
 
   return (
     <Box sx={{ display: "flex", minHeight: "100%" }}>
+      {pantallaChica && (
+        <AppBar position="fixed" color="inherit" sx={{ bgcolor: "white" }}>
+          <Toolbar sx={{ gap: 1 }}>
+            <IconButton
+              edge="start"
+              aria-label="Abrir menú"
+              data-testid="button-topbar-menu"
+              onClick={() => setMenuAbierto(true)}
+            >
+              <MenuIcon />
+            </IconButton>
+            <Box sx={{ flex: 1, display: "flex", alignItems: "center" }}>
+              <img src={Logo} alt="Atlas" height={28} />
+            </Box>
+            <Button
+              variant="outlined"
+              color="error"
+              startIcon={<LogoutIcon />}
+              data-testid="button-topbar-logout"
+              onClick={handleLogout}
+              sx={{ textTransform: "none" }}
+            >
+              Cerrar sesión
+            </Button>
+          </Toolbar>
+        </AppBar>
+      )}
       <Drawer
-        variant="permanent"
+        variant={pantallaChica ? "temporary" : "permanent"}
+        open={pantallaChica ? menuAbierto : true}
+        onClose={() => setMenuAbierto(false)}
         sx={{
-          width: drawerWidth,
+          width: pantallaChica ? undefined : drawerWidth,
           flexShrink: 0,
           [`& .MuiDrawer-paper`]: {
             width: drawerWidth,
@@ -224,6 +267,7 @@ export default function Layout() {
           overflowX: "hidden",
         }}
       >
+        {pantallaChica && <Toolbar />}
         <Container sx={{ py: 3 }}>
           <Outlet />
         </Container>

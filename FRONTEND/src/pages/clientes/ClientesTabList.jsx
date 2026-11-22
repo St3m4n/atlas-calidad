@@ -149,6 +149,7 @@ export default function ClientesTabList({ items, onDelete, onLoad, loading = fal
               color="primary"
               size="small"
               data-testid={`button-cliente-editar-${row.original.id}`}
+              aria-label={`Editar cliente ${row.original.nombre}`}
               onClick={() =>
                 navigate(`/clientes/${row.original.id}/editar`)
               }
@@ -165,6 +166,7 @@ export default function ClientesTabList({ items, onDelete, onLoad, loading = fal
                 color="error"
                 size="small"
                 data-testid={`button-cliente-eliminar-${row.original.id}`}
+                aria-label={`Eliminar cliente ${row.original.nombre}`}
                 onClick={() =>
                   handleDeleteClick(row.original.id, row.original.nombre)
                 }
