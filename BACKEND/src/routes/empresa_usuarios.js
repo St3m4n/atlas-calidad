@@ -1,5 +1,6 @@
 const express = require("express");
 const { pool } = require("../db");
+const { responderError } = require("../middleware/errores");
 const { listarDeLaEmpresa } = require("../utils/listados");
 const validate = require("../middleware/validate");
 const { requireAuth, requireAdmin } = require("../middleware/auth");
@@ -59,11 +60,7 @@ router.post("/", requireAdmin, validate(createEmpresaUsuarioSchema), async (req,
 
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al crear vínculo",
-      glosa: err.message || err.toString(),
-    });
+    return responderError(res, err, "Error al crear vínculo");
   }
 });
 
@@ -93,11 +90,7 @@ router.get("/:id", requireAuth, async (req, res) => {
       return res.status(404).json({ error: "No encontrado" });
     res.json(result.rows[0]);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al obtener vínculo",
-      glosa: err.message || err.toString(),
-    });
+    return responderError(res, err, "Error al obtener vínculo");
   }
 });
 
@@ -127,11 +120,7 @@ router.put("/:id", requireAdmin, validate(updateEmpresaUsuarioSchema), async (re
 
     res.json(result.rows[0]);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al actualizar vínculo",
-      glosa: err.message || err.toString(),
-    });
+    return responderError(res, err, "Error al actualizar vínculo");
   }
 });
 
@@ -156,11 +145,7 @@ router.delete("/:id", requireAdmin, async (req, res) => {
 
     res.json({ deleted: true });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al eliminar vínculo",
-      glosa: err.message || err.toString(),
-    });
+    return responderError(res, err, "Error al eliminar vínculo");
   }
 });
 

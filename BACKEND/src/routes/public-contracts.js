@@ -1,6 +1,7 @@
 const express = require("express");
 const rateLimit = require("express-rate-limit");
 const { pool } = require("../db");
+const { responderError } = require("../middleware/errores");
 const { verificarContrasena } = require("../utils/contrasenas");
 const { opcionesLimiteEnlace } = require("../middleware/limites");
 
@@ -89,11 +90,7 @@ router.post("/:token/verify", limiteEnlace, async (req, res) => {
       verified: true,
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al verificar contraseña",
-      glosa: err.message || err.toString(),
-    });
+    return responderError(res, err, "Error al verificar contraseña");
   }
 });
 
@@ -110,11 +107,7 @@ router.post("/:token/files", limiteEnlace, async (req, res) => {
 
     res.json(docs.rows);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al obtener archivos",
-      glosa: err.message || err.toString(),
-    });
+    return responderError(res, err, "Error al obtener archivos");
   }
 });
 
@@ -143,11 +136,7 @@ router.post("/:token/file/:fileId", limiteEnlace, async (req, res) => {
     res.setHeader("Content-Disposition", `inline; filename="${nombreArchivo}"`);
     res.send(buffer);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al obtener archivo",
-      glosa: err.message || err.toString(),
-    });
+    return responderError(res, err, "Error al obtener archivo");
   }
 });
 

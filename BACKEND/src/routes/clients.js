@@ -1,5 +1,6 @@
 const express = require("express");
 const { pool } = require("../db");
+const { responderError } = require("../middleware/errores");
 const { listarDeLaEmpresa } = require("../utils/listados");
 const { requireAuth } = require("../middleware/auth");
 const validate = require("../middleware/validate");
@@ -53,11 +54,7 @@ router.post("/", requireAuth, validate(clienteSchema), async (req, res) => {
 
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al crear cliente",
-      glosa: err.message || err.toString(),
-    });
+    return responderError(res, err, "Error al crear cliente");
   }
 });
 
@@ -74,11 +71,7 @@ router.get("/search", requireAuth, async (req, res) => {
     );
     res.json(result.rows);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error en búsqueda",
-      glosa: err.message || err.toString(),
-    });
+    return responderError(res, err, "Error en búsqueda");
   }
 });
 
@@ -96,11 +89,7 @@ router.get("/:id", requireAuth, async (req, res) => {
 
     res.json(result.rows[0]);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al obtener cliente",
-      glosa: err.message || err.toString(),
-    });
+    return responderError(res, err, "Error al obtener cliente");
   }
 });
 
@@ -132,11 +121,7 @@ router.put("/:id", requireAuth, validate(clienteSchema), async (req, res) => {
 
     res.json(result.rows[0]);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al actualizar cliente",
-      glosa: err.message || err.toString(),
-    });
+    return responderError(res, err, "Error al actualizar cliente");
   }
 });
 
@@ -170,11 +155,7 @@ router.delete("/:id", requireAuth, async (req, res) => {
 
     res.json({ deleted: true });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al eliminar cliente",
-      glosa: err.message || err.toString(),
-    });
+    return responderError(res, err, "Error al eliminar cliente");
   }
 });
 

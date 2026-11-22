@@ -2,6 +2,7 @@ const express = require("express");
 const multer = require("multer");
 const crypto = require("crypto");
 const { pool } = require("../db");
+const { responderError } = require("../middleware/errores");
 const { listarDeLaEmpresa } = require("../utils/listados");
 const validate = require("../middleware/validate");
 const { requireAuth, requireAdmin } = require("../middleware/auth");
@@ -61,11 +62,7 @@ router.post("/", requireAuth, upload.array("files", 10), validate(createContract
 
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al crear contrato",
-      glosa: err.message || err.toString(),
-    });
+    return responderError(res, err, "Error al crear contrato");
   }
 });
 
@@ -130,11 +127,7 @@ router.get("/estados", requireAuth, async (req, res) => {
 
     res.json([...porVencerConEstado, ...vencidosConEstado]);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al obtener contratos por estado",
-      glosa: err.message || err.toString(),
-    });
+    return responderError(res, err, "Error al obtener contratos por estado");
   }
 });
 
@@ -211,11 +204,7 @@ router.get("/dashboard", requireAuth, async (req, res) => {
       contratosVencen30Dias: contratos30Dias,
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al obtener estadísticas",
-      glosa: err.message || err.toString(),
-    });
+    return responderError(res, err, "Error al obtener estadísticas");
   }
 });
 
@@ -234,11 +223,7 @@ router.get("/:id", requireAuth, async (req, res) => {
       return res.status(404).json({ error: "No encontrado" });
     res.json(result.rows[0]);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al obtener contrato",
-      glosa: err.message || err.toString(),
-    });
+    return responderError(res, err, "Error al obtener contrato");
   }
 });
 
@@ -349,11 +334,7 @@ router.put("/:id", requireAuth, upload.array("files", 10), validate(updateContra
 
     res.json(result.rows[0]);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al actualizar contrato",
-      glosa: err.message || err.toString(),
-    });
+    return responderError(res, err, "Error al actualizar contrato");
   }
 });
 
@@ -391,11 +372,7 @@ router.get("/:id/files", requireAuth, contratoDeMiEmpresa, async (req, res) => {
     );
     res.json(docs.rows);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al obtener archivos",
-      glosa: err.message || err.toString(),
-    });
+    return responderError(res, err, "Error al obtener archivos");
   }
 });
 
@@ -414,11 +391,7 @@ router.get("/:id/file/:fileId", requireAuth, contratoDeMiEmpresa, async (req, re
     res.setHeader("Content-Disposition", `inline; filename="${nombreArchivo}"`);
     res.send(buffer);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al obtener archivo",
-      glosa: err.message || err.toString(),
-    });
+    return responderError(res, err, "Error al obtener archivo");
   }
 });
 
@@ -437,11 +410,7 @@ router.get("/:id/file", requireAuth, contratoDeMiEmpresa, async (req, res) => {
     res.setHeader("Content-Disposition", `inline; filename="${nombreArchivo}"`);
     res.send(buffer);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al obtener archivo",
-      glosa: err.message || err.toString(),
-    });
+    return responderError(res, err, "Error al obtener archivo");
   }
 });
 
@@ -498,11 +467,7 @@ router.delete("/:id/file/:fileId", requireAuth, async (req, res) => {
 
     res.json({ deleted: true });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al eliminar archivo",
-      glosa: err.message || err.toString(),
-    });
+    return responderError(res, err, "Error al eliminar archivo");
   }
 });
 
@@ -535,11 +500,7 @@ router.delete("/:id", requireAdmin, async (req, res) => {
 
     res.json({ deleted: true });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al eliminar contrato",
-      glosa: err.message || err.toString(),
-    });
+    return responderError(res, err, "Error al eliminar contrato");
   }
 });
 
@@ -604,11 +565,7 @@ router.post("/:id/share", requireAuth, async (req, res) => {
       message: "Enlace compartido generado exitosamente",
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al generar enlace compartido",
-      glosa: err.message || err.toString(),
-    });
+    return responderError(res, err, "Error al generar enlace compartido");
   }
 });
 
@@ -653,11 +610,7 @@ router.delete("/:id/share", requireAuth, async (req, res) => {
 
     res.json({ message: "Enlace compartido desactivado" });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al desactivar enlace compartido",
-      glosa: err.message || err.toString(),
-    });
+    return responderError(res, err, "Error al desactivar enlace compartido");
   }
 });
 
@@ -697,11 +650,7 @@ router.get("/:id/share", requireAuth, async (req, res) => {
       shareUrl,
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al obtener información de compartir",
-      glosa: err.message || err.toString(),
-    });
+    return responderError(res, err, "Error al obtener información de compartir");
   }
 });
 

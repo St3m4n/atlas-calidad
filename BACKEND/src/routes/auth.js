@@ -1,6 +1,7 @@
 const express = require("express");
 const rateLimit = require("express-rate-limit");
 const { pool } = require("../db");
+const { responderError } = require("../middleware/errores");
 const validate = require("../middleware/validate");
 const { firmarToken } = require("../middleware/auth");
 const { loginSchema } = require("../validations/auth");
@@ -69,10 +70,7 @@ router.post("/login", rateLimit(opcionesLimiteLogin()), validate(loginSchema), a
 
     res.json({ token });
   } catch (err) {
-    console.error(err);
-    res
-      .status(500)
-      .json({ error: "Error en login", glosa: err.message || err.toString() });
+    return responderError(res, err, "Error en login");
   }
 });
 

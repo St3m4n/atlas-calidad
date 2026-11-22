@@ -1,5 +1,6 @@
 const express = require("express");
 const { pool } = require("../db");
+const { responderError } = require("../middleware/errores");
 const { requireAuth } = require("../middleware/auth");
 const router = express.Router();
 
@@ -130,11 +131,7 @@ router.get("/", requireAuth, async (req, res) => {
       },
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al obtener métricas",
-      glosa: err.message || err.toString(),
-    });
+    return responderError(res, err, "Error al obtener métricas");
   }
 });
 
