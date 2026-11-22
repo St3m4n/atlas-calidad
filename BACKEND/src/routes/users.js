@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const validate = require("../middleware/validate");
 const requireAdmin = require("../middleware/requireAdmin");
 const { createUserSchema, updateUserSchema } = require("../validations/users");
+const { hashContrasena } = require("../utils/contrasenas");
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || "inseguro";
@@ -26,7 +27,7 @@ router.post("/", validate(createUserSchema), async (req, res) => {
   try {
     const result = await pool.query(
       "INSERT INTO usuarios (nombre_usuario, contrasena_hash, correo) VALUES ($1, $2, $3) RETURNING id, nombre_usuario, correo, created_at",
-      [nombre_usuario, contrasena_hash, correo]
+      [nombre_usuario, await hashContrasena(contrasena_hash), correo]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -179,7 +180,7 @@ router.put("/:id", validate(updateUserSchema), async (req, res) => {
     }
     if (contrasena_hash !== undefined) {
       updateFields.push(`contrasena_hash=$${paramIndex++}`);
-      updateValues.push(contrasena_hash);
+      updateValues.push(await hashContrasena(contrasena_hash));
     }
     if (correo !== undefined) {
       updateFields.push(`correo=$${paramIndex++}`);

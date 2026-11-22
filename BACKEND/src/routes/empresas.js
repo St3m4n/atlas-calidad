@@ -8,6 +8,7 @@ const {
   createEmpresaConUsuarioSchema,
   updateEmpresaSchema,
 } = require("../validations/empresas");
+const { hashContrasena } = require("../utils/contrasenas");
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || "inseguro";
@@ -51,7 +52,7 @@ router.post("/", async (req, res) => {
     try {
       const usuarioResult = await pool.query(
         "INSERT INTO usuarios (nombre_usuario, contrasena_hash, correo) VALUES ($1, $2, $3) RETURNING id, nombre_usuario, correo, created_at",
-        [nombre_usuario, contrasena_hash, correoUsuario]
+        [nombre_usuario, await hashContrasena(contrasena_hash), correoUsuario]
       );
       const usuarioId = usuarioResult.rows[0].id;
 
