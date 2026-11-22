@@ -176,6 +176,7 @@ export default function ContratosTabList({
               color="primary"
               size="small"
               data-testid={`button-contrato-editar-${row.original.id}`}
+              aria-label={`Editar contrato ${row.original.titulo}`}
               onClick={(e) => {
                 e.stopPropagation();
                 navigate(`/contratos/${row.original.id}/editar`);
@@ -193,6 +194,7 @@ export default function ContratosTabList({
                 color="error"
                 size="small"
                 data-testid={`button-contrato-eliminar-${row.original.id}`}
+                aria-label={`Eliminar contrato ${row.original.titulo}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleDeleteClick(row.original.id, row.original.titulo);

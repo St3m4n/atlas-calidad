@@ -110,8 +110,8 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Métricas principales con diseño mejorado */}
-      <div className="grid grid-cols-4 gap-6">
+      {/* Métricas principales: 2 columnas en celular y 4 en pantallas grandes (OBS-04) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         <Card
           sx={{
             background: "#1B7576",
@@ -134,7 +134,7 @@ export default function Home() {
                 <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
                   {metricas.totalUsuarios}
                 </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                <Typography variant="body2">
                   Usuarios de la Empresa
                 </Typography>
               </Box>
@@ -144,7 +144,7 @@ export default function Home() {
         </Card>
         <Card
           sx={{
-            background: "#4BBC7F",
+            background: "#2E7D32", // antes #4BBC7F (contraste 2,4:1)
             color: "white",
             boxShadow: "0 10px 30px rgba(75, 188, 127, 0.3)",
             transition: "transform 0.3s ease, box-shadow 0.3s ease",
@@ -164,7 +164,7 @@ export default function Home() {
                 <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
                   {metricas.totalClientes}
                 </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                <Typography variant="body2">
                   Clientes Creados
                 </Typography>
               </Box>
@@ -174,7 +174,7 @@ export default function Home() {
         </Card>
         <Card
           sx={{
-            background: "#D32F2F",
+            background: "#C62828", // antes #D32F2F con texto atenuado
             color: "white",
             boxShadow: "0 10px 30px rgba(211, 47, 47, 0.3)",
             transition: "transform 0.3s ease, box-shadow 0.3s ease",
@@ -194,7 +194,7 @@ export default function Home() {
                 <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
                   {metricas.contratos15Dias}
                 </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                <Typography variant="body2">
                   Vencen en 15 días
                 </Typography>
               </Box>
@@ -204,7 +204,7 @@ export default function Home() {
         </Card>
         <Card
           sx={{
-            background: "#FF9800",
+            background: "#B45309", // antes #FF9800 (contraste 2,2:1)
             color: "white",
             boxShadow: "0 10px 30px rgba(255, 152, 0, 0.3)",
             transition: "transform 0.3s ease, box-shadow 0.3s ease",
@@ -224,7 +224,7 @@ export default function Home() {
                 <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
                   {metricas.contratos30Dias}
                 </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                <Typography variant="body2">
                   Vencen en 30 días
                 </Typography>
               </Box>
@@ -301,6 +301,9 @@ export default function Home() {
         </Box>
         <CardContent>
           <Box
+            tabIndex={0}
+            role="region"
+            aria-label="Lista de contratos"
             sx={{
               height: "400px",
               overflowY: "auto",

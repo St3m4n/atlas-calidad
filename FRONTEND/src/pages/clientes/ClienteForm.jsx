@@ -168,9 +168,10 @@ export default function ClienteForm() {
               </Typography>
               <Stack direction="row" spacing={2} flexWrap="wrap">
                 <FormControl sx={{ minWidth: 150 }}>
-                  <InputLabel>Tipo de cliente</InputLabel>
+                  <InputLabel id="label-cliente-tipo">Tipo de cliente</InputLabel>
                   <Select
                     value={formik.values.es_empresa ? "empresa" : "persona"}
+                    labelId="label-cliente-tipo"
                     label="Tipo de cliente"
                     inputProps={{ "data-testid": "select-cliente-tipo" }}
                     onChange={(e) =>
@@ -502,9 +503,10 @@ export default function ClienteForm() {
               </Typography>
               <Stack direction="row" spacing={2} flexWrap="wrap">
                 <FormControl sx={{ flex: 1, minWidth: 200 }}>
-                  <InputLabel>Método de pago</InputLabel>
+                  <InputLabel id="label-cliente-metodo-pago">Método de pago</InputLabel>
                   <Select
                     value={formik.values.metodo_pago || ""}
+                    labelId="label-cliente-metodo-pago"
                     label="Método de pago"
                     inputProps={{ "data-testid": "select-cliente-metodo-pago" }}
                     onChange={(e) =>
@@ -542,9 +544,10 @@ export default function ClienteForm() {
                   required
                 />
                 <FormControl sx={{ flex: 1, minWidth: 150 }}>
-                  <InputLabel>Moneda</InputLabel>
+                  <InputLabel id="label-cliente-moneda">Moneda</InputLabel>
                   <Select
                     value={formik.values.moneda || ""}
+                    labelId="label-cliente-moneda"
                     label="Moneda"
                     inputProps={{ "data-testid": "select-cliente-moneda" }}
                     onChange={(e) =>

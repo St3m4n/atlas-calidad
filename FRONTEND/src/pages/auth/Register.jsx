@@ -180,7 +180,7 @@ export default function Register() {
                 <button
                   type="submit"
                   data-testid="button-registro-continuar"
-                  className="w-full mt-4 py-3 text-lg font-semibold bg-secondary text-primary rounded-lg hover:bg-[#e6a600] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
+                  className="w-full mt-4 py-3 text-lg font-semibold bg-primary text-white rounded-lg hover:bg-[#145a5b] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
                 >
                   Continuar
                 </button>
@@ -421,7 +421,7 @@ export default function Register() {
                   <button
                     type="submit"
                     data-testid="button-registro-crear-cuenta"
-                    className="flex-1 mt-4 py-3 text-lg font-semibold bg-secondary text-primary rounded-lg hover:bg-[#e6a600] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
+                    className="flex-1 mt-4 py-3 text-lg font-semibold bg-primary text-white rounded-lg hover:bg-[#145a5b] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
                   >
                     Crear cuenta
                   </button>
