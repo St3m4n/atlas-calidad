@@ -9,7 +9,10 @@ test("La página de inicio de sesión carga correctamente", async ({ page }) => 
 });
 
 test("Credenciales incorrectas muestran un mensaje y no dan acceso", async ({ page }) => {
-  await iniciarSesion(page, "admin", "clave-equivocada");
+  // Se usa un usuario que no existe: desde que la API limita los intentos fallidos
+  // (20 cada 15 minutos por usuario), fallar con "admin" en cada corrida terminaba
+  // bloqueando esa cuenta para las demás pruebas
+  await iniciarSesion(page, "usuario-inexistente", "clave-equivocada");
   await expect(page.getByText("Credenciales inválidas").first()).toBeVisible();
   await expect(page).toHaveURL(/\/login/);
 });

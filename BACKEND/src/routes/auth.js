@@ -1,13 +1,16 @@
 const express = require("express");
+const rateLimit = require("express-rate-limit");
 const jwt = require("jsonwebtoken");
 const { pool } = require("../db");
 const validate = require("../middleware/validate");
 const { loginSchema } = require("../validations/auth");
 const { verificarContrasena } = require("../utils/contrasenas");
+const { opcionesLimiteLogin } = require("../middleware/limites");
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || "inseguro";
 
-router.post("/login", validate(loginSchema), async (req, res) => {
+// Freno a los intentos de adivinar contraseñas (fuerza bruta): ver middleware/limites.js
+router.post("/login", rateLimit(opcionesLimiteLogin()), validate(loginSchema), async (req, res) => {
   const { nombre_usuario, password } = req.body;
   try {
     const result = await pool.query(

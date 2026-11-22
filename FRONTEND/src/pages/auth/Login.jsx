@@ -37,8 +37,13 @@ export default function Login() {
       await login(values);
       toast.success("Sesión iniciada");
       navigate("/home", { replace: true });
-    } catch {
-      toast.error("Credenciales inválidas");
+    } catch (error) {
+      // 429: la API frenó el inicio de sesión por demasiados intentos fallidos
+      if (error?.response?.status === 429) {
+        toast.error(error.response.data?.glosa || "Demasiados intentos. Espera unos minutos");
+      } else {
+        toast.error("Credenciales inválidas");
+      }
     }
   };
 
