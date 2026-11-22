@@ -1,6 +1,5 @@
 const express = require("express");
 const { pool } = require("../db");
-const jwt = require("jsonwebtoken");
 const validate = require("../middleware/validate");
 const { requireAuth, requireAdmin } = require("../middleware/auth");
 const {
@@ -10,18 +9,6 @@ const {
 const { hashContrasena } = require("../utils/contrasenas");
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || "inseguro";
-
-function getUserFromAuthHeader(req) {
-  const auth = req.headers.authorization || "";
-  if (!auth.startsWith("Bearer ")) return null;
-  try {
-    const token = auth.substring(7);
-    return jwt.verify(token, JWT_SECRET);
-  } catch {
-    return null;
-  }
-}
 
 // DEF-05 (RB-5): solo un administrador agrega usuarios a su empresa
 // (antes bastaba cualquier sesión, incluida la de un editor)
@@ -79,16 +66,9 @@ router.post("/", requireAdmin, validate(createEmpresaUsuarioSchema), async (req,
   }
 });
 
-router.get("/", async (req, res) => {
+router.get("/", requireAuth, async (req, res) => {
   try {
-    const authUser = getUserFromAuthHeader(req);
-
-    if (!authUser || !authUser.empresaId) {
-      return res.status(401).json({
-        error: "No autorizado",
-        glosa: "Token inválido o sin empresa asociada",
-      });
-    }
+    const authUser = req.authUser;
 
     const empresaId = authUser.empresaId;
     const result = await pool.query(

@@ -1,23 +1,11 @@
 const express = require("express");
 const { pool } = require("../db");
-const jwt = require("jsonwebtoken");
+const { requireAuth } = require("../middleware/auth");
 const validate = require("../middleware/validate");
 const { clienteSchema } = require("../validations/clients");
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || "inseguro";
 
-function getUserFromAuthHeader(req) {
-  const auth = req.headers.authorization || "";
-  if (!auth.startsWith("Bearer ")) return null;
-  try {
-    const token = auth.substring(7);
-    return jwt.verify(token, JWT_SECRET);
-  } catch {
-    return null;
-  }
-}
-
-router.post("/", validate(clienteSchema), async (req, res) => {
+router.post("/", requireAuth, validate(clienteSchema), async (req, res) => {
   const {
     nombre,
     correo,
@@ -47,14 +35,7 @@ router.post("/", validate(clienteSchema), async (req, res) => {
   } = req.body;
 
   try {
-    const authUser = getUserFromAuthHeader(req);
-
-    if (!authUser || !authUser.empresaId) {
-      return res.status(401).json({
-        error: "No autorizado",
-        glosa: "Token inválido o sin empresa asociada",
-      });
-    }
+    const authUser = req.authUser;
 
     const empresaId = authUser.empresaId;
 
@@ -115,18 +96,9 @@ router.post("/", validate(clienteSchema), async (req, res) => {
   }
 });
 
-router.get("/", async (req, res) => {
+router.get("/", requireAuth, async (req, res) => {
   try {
-    const authUser = getUserFromAuthHeader(req);
-
-    if (!authUser || !authUser.empresaId) {
-      return res.status(401).json({
-        error: "No autorizado",
-        glosa: "Token inválido o sin empresa asociada",
-      });
-    }
-
-    console.log("authUser", authUser.empresaId);
+    const authUser = req.authUser;
 
     const result = await pool.query(
       "SELECT * FROM clientes WHERE empresa_id = $1 ORDER BY id DESC",
@@ -143,17 +115,10 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/search", async (req, res) => {
+router.get("/search", requireAuth, async (req, res) => {
   const { name } = req.query;
   try {
-    const authUser = getUserFromAuthHeader(req);
-
-    if (!authUser || !authUser.empresaId) {
-      return res.status(401).json({
-        error: "No autorizado",
-        glosa: "Token inválido o sin empresa asociada",
-      });
-    }
+    const authUser = req.authUser;
 
     const result = await pool.query(
       "SELECT * FROM clientes WHERE nombre ILIKE $1 AND empresa_id = $2 ORDER BY nombre ASC",
@@ -169,16 +134,9 @@ router.get("/search", async (req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", requireAuth, async (req, res) => {
   try {
-    const authUser = getUserFromAuthHeader(req);
-
-    if (!authUser || !authUser.empresaId) {
-      return res.status(401).json({
-        error: "No autorizado",
-        glosa: "Token inválido o sin empresa asociada",
-      });
-    }
+    const authUser = req.authUser;
 
     const result = await pool.query(
       "SELECT * FROM clientes WHERE id=$1 AND empresa_id = $2",
@@ -198,7 +156,7 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.put("/:id", validate(clienteSchema), async (req, res) => {
+router.put("/:id", requireAuth, validate(clienteSchema), async (req, res) => {
   const {
     nombre,
     correo,
@@ -228,14 +186,7 @@ router.put("/:id", validate(clienteSchema), async (req, res) => {
   } = req.body;
 
   try {
-    const authUser = getUserFromAuthHeader(req);
-
-    if (!authUser || !authUser.empresaId) {
-      return res.status(401).json({
-        error: "No autorizado",
-        glosa: "Token inválido o sin empresa asociada",
-      });
-    }
+    const authUser = req.authUser;
 
     const result = await pool.query(
       `UPDATE clientes SET 
@@ -297,16 +248,9 @@ router.put("/:id", validate(clienteSchema), async (req, res) => {
   }
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", requireAuth, async (req, res) => {
   try {
-    const authUser = getUserFromAuthHeader(req);
-
-    if (!authUser || !authUser.empresaId) {
-      return res.status(401).json({
-        error: "No autorizado",
-        glosa: "Token inválido o sin empresa asociada",
-      });
-    }
+    const authUser = req.authUser;
 
     // RB-4 / RB-5: solo un administrador puede eliminar clientes
     if (authUser.rolNombre !== "administrador") {

@@ -1,19 +1,7 @@
 const express = require("express");
-const jwt = require("jsonwebtoken");
 const { pool } = require("../db");
+const { requireAuth } = require("../middleware/auth");
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || "inseguro";
-
-function getUserFromAuthHeader(req) {
-  const auth = req.headers.authorization || "";
-  if (!auth.startsWith("Bearer ")) return null;
-  try {
-    const token = auth.substring(7);
-    return jwt.verify(token, JWT_SECRET);
-  } catch {
-    return null;
-  }
-}
 
 function calcularDiasEntreFechas(fecha1, fecha2) {
   const date1 = new Date(fecha1);
@@ -25,15 +13,9 @@ function calcularDiasEntreFechas(fecha1, fecha2) {
   return diffDays;
 }
 
-router.get("/", async (req, res) => {
+router.get("/", requireAuth, async (req, res) => {
   try {
-    const authUser = getUserFromAuthHeader(req);
-    if (!authUser || !authUser.empresaId) {
-      return res.status(401).json({
-        error: "No autorizado",
-        glosa: "Token inválido o sin empresa asociada",
-      });
-    }
+    const authUser = req.authUser;
 
     const empresaId = authUser.empresaId;
     const hoy = new Date();

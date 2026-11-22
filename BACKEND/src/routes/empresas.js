@@ -1,6 +1,5 @@
 const express = require("express");
 const { pool } = require("../db");
-const jwt = require("jsonwebtoken");
 const validate = require("../middleware/validate");
 const { requireAuth, requireAdmin } = require("../middleware/auth");
 const {
@@ -11,18 +10,6 @@ const {
 const { hashContrasena } = require("../utils/contrasenas");
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || "inseguro";
-
-function getUserFromAuthHeader(req) {
-  const auth = req.headers.authorization || "";
-  if (!auth.startsWith("Bearer ")) return null;
-  try {
-    const token = auth.substring(7);
-    return jwt.verify(token, JWT_SECRET);
-  } catch {
-    return null;
-  }
-}
 
 // El registro público (usuario + empresa nueva) no exige sesión; crear una empresa
 // suelta sí exige ser administrador (DEF-05: antes cualquiera podía crearla)
@@ -114,7 +101,7 @@ router.post("/", registroPublicoOAdministrador, async (req, res) => {
         [nombre, direccion, telefono, correo]
       );
 
-      const authUser = getUserFromAuthHeader(req);
+      const authUser = req.authUser; // lo deja requireAdmin (ver registroPublicoOAdministrador)
       await pool.query(
         "INSERT INTO auditoria (usuario_id, accion) VALUES ($1, $2)",
         [

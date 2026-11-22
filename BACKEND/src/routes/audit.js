@@ -1,21 +1,8 @@
 const express = require("express");
 const { pool } = require("../db");
-const jwt = require("jsonwebtoken");
 const { requireAuth } = require("../middleware/auth");
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || "inseguro";
-
-function getUserFromAuthHeader(req) {
-  const auth = req.headers.authorization || "";
-  if (!auth.startsWith("Bearer ")) return null;
-  try {
-    const token = auth.substring(7);
-    return jwt.verify(token, JWT_SECRET);
-  } catch {
-    return null;
-  }
-}
 
 // DEF-002: solo un usuario con sesión escribe en la bitácora, y queda registrado
 // con el nombre de su token (antes cualquiera podía escribir sin iniciar sesión)
@@ -35,15 +22,9 @@ router.post("/", requireAuth, async (req, res) => {
   }
 });
 
-router.get("/", async (req, res) => {
+router.get("/", requireAuth, async (req, res) => {
   try {
-    const authUser = getUserFromAuthHeader(req);
-    if (!authUser || !authUser.empresaId) {
-      return res.status(401).json({
-        error: "No autorizado",
-        glosa: "Token inválido o sin empresa asociada",
-      });
-    }
+    const authUser = req.authUser;
 
     const result = await pool.query(
       `SELECT a.* FROM auditoria a

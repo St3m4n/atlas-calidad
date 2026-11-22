@@ -1,26 +1,11 @@
 const express = require("express");
 const { pool } = require("../db");
-const jwt = require("jsonwebtoken");
 const validate = require("../middleware/validate");
 const { requireAuth, requireAdmin } = require("../middleware/auth");
 const { createUserSchema, updateUserSchema } = require("../validations/users");
 const { hashContrasena } = require("../utils/contrasenas");
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || "inseguro";
-
-function getUserFromAuthHeader(req) {
-  const auth = req.headers.authorization || "";
-  if (!auth.startsWith("Bearer ")) return null;
-  try {
-    const token = auth.substring(7);
-    const decoded = jwt.verify(token, JWT_SECRET);
-    return decoded;
-  } catch (error) {
-    console.error(error);
-    return null;
-  }
-}
 
 // DEF-001: solo un administrador puede crear usuarios (antes no exigía sesión)
 router.post("/", requireAdmin, validate(createUserSchema), async (req, res) => {
@@ -40,16 +25,9 @@ router.post("/", requireAdmin, validate(createUserSchema), async (req, res) => {
   }
 });
 
-router.get("/", async (req, res) => {
+router.get("/", requireAuth, async (req, res) => {
   try {
-    const authUser = getUserFromAuthHeader(req);
-    console.log("authUser", authUser);
-    if (!authUser || !authUser.empresaId) {
-      return res.status(401).json({
-        error: "No autorizado",
-        glosa: "Token inválido o sin empresa asociada",
-      });
-    }
+    const authUser = req.authUser;
 
     const result = await pool.query(
       `SELECT DISTINCT u.id, u.nombre_usuario, u.correo, u.created_at 
@@ -70,15 +48,9 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", requireAuth, async (req, res) => {
   try {
-    const authUser = getUserFromAuthHeader(req);
-    if (!authUser || !authUser.empresaId) {
-      return res.status(401).json({
-        error: "No autorizado",
-        glosa: "Token inválido o sin empresa asociada",
-      });
-    }
+    const authUser = req.authUser;
 
     // Obtener información del usuario y su rol desde empresa_usuarios
     const result = await pool.query(
