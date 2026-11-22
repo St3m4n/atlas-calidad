@@ -4,44 +4,16 @@
 const request = require("supertest");
 const app = require("../../src/app");
 const { pool } = require("../../src/db");
+const { iniciarSesion, clienteDePrueba } = require("../apoyo");
 
-async function iniciarSesion(usuario, clave) {
-  const res = await request(app)
-    .post("/autenticacion/login")
-    .send({ nombre_usuario: usuario, password: clave });
-  return res.body.token;
-}
-
-function clienteDePrueba() {
-  const id = Date.now();
-  return {
-    nombre: "Cliente Prueba",
-    correo: `cliente${id}@prueba.cl`,
-    telefono: "912345678",
-    rut: "11111111-1",
-    nombre_fantasia: "Prueba SpA",
-    giro_actividad_economica: "Servicios",
-    nombre_representante: "Ana Pérez",
-    cargo_representante: "Gerente",
-    correo_representante: `rep${id}@prueba.cl`,
-    telefono_representante: "912345678",
-    relacion_representante: "Representante legal",
-    direccion_calle: "Av. Siempre Viva",
-    direccion_numero: "742",
-    direccion_ciudad: "Santiago",
-    direccion_region: "Metropolitana",
-    sitio_web: "https://www.prueba.cl",
-    telefono_corporativo: "223456789",
-    nombre_banco: "Banco Estado",
-    numero_cuenta: "123456",
-    titular_cuenta: "Prueba SpA",
-    metodo_pago: "transferencia",
-    dia_pago: "5",
-    moneda: "CLP",
-  };
-}
+// Los clientes que crean estas pruebas se borran al final, para no acumular
+// "Cliente Prueba" en la base de datos en cada ejecución
+const clientesCreados = [];
 
 afterAll(async () => {
+  if (clientesCreados.length > 0) {
+    await pool.query("DELETE FROM clientes WHERE id = ANY($1::bigint[])", [clientesCreados]);
+  }
   await pool.end();
 });
 
@@ -87,6 +59,7 @@ describe("RF-4 Gestión de clientes", () => {
       .set("Authorization", `Bearer ${token}`)
       .send(clienteDePrueba());
     expect(res.status).toBe(201);
+    clientesCreados.push(res.body.id);
   });
 });
 
@@ -97,6 +70,7 @@ describe("RB-4 Un editor solo tiene permisos de lectura", () => {
       .post("/clientes")
       .set("Authorization", `Bearer ${tokenAdmin}`)
       .send(clienteDePrueba());
+    clientesCreados.push(creado.body.id);
 
     const tokenEditor = await iniciarSesion("editor", "editor");
     const res = await request(app)

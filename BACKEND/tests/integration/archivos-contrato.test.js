@@ -9,6 +9,14 @@ const path = require("path");
 const request = require("supertest");
 const app = require("../../src/app");
 const { pool } = require("../../src/db");
+const {
+  conToken,
+  iniciarSesion,
+  registrarOtraEmpresa,
+  borrarOtraEmpresa,
+  crearContratoConPdf,
+  borrarContrato,
+} = require("../apoyo");
 
 const PDF_DE_PRUEBA = Buffer.from("%PDF-1.4\n% documento de prueba DEF-04\n");
 const CARPETA_UPLOADS = path.join(__dirname, "..", "..", "uploads", "contracts");
@@ -20,57 +28,21 @@ let otra = null;
 let contratoId;
 let archivoId;
 
-const conToken = (token) => ({ Authorization: `Bearer ${token}` });
-
-async function iniciarSesion(usuario, clave) {
-  const res = await request(app)
-    .post("/autenticacion/login")
-    .send({ nombre_usuario: usuario, password: clave });
-  return res.body.token;
-}
-
 beforeAll(async () => {
   tokenAdmin = await iniciarSesion("admin", "admin");
-
-  const creado = await request(app)
-    .post("/contratos")
-    .set(conToken(tokenAdmin))
-    .field("cliente_id", "1")
-    .field("titulo", `Contrato DEF-04 ${Date.now()}`)
-    .field("fecha_inicio", "2026-01-01")
-    .field("fecha_fin", "2026-12-31")
-    .attach("files", PDF_DE_PRUEBA, { filename: "def04.pdf", contentType: "application/pdf" });
-  contratoId = creado.body.id;
-  const docs = await pool.query("SELECT id FROM documentos_contrato WHERE contract_id = $1", [contratoId]);
-  archivoId = docs.rows[0].id;
-
-  // Segunda empresa con su propio administrador, creada con el registro público
-  const sufijo = Date.now();
-  const registro = await request(app)
-    .post("/empresas")
-    .send({
-      usuario: {
-        nombre_usuario: `admind04${sufijo}`,
-        contrasena_hash: "ClaveEmpresaD04",
-        correo: `admind04${sufijo}@prueba.cl`,
-      },
-      empresa: { nombre: `Empresa D04 ${sufijo}`, correo: `empresad04${sufijo}@prueba.cl` },
-    });
-  otra = { usuarioId: registro.body.usuario.id, empresaId: registro.body.empresa.id };
-  tokenOtraEmpresa = await iniciarSesion(`admind04${sufijo}`, "ClaveEmpresaD04");
+  ({ contratoId, archivoId } = await crearContratoConPdf(tokenAdmin, {
+    titulo: `Contrato DEF-04 ${Date.now()}`,
+    pdf: PDF_DE_PRUEBA,
+    nombreArchivo: "def04.pdf",
+  }));
+  otra = await registrarOtraEmpresa("admind04");
+  tokenOtraEmpresa = otra.token;
 });
 
 afterAll(async () => {
   if (fs.existsSync(ARCHIVO_SUELTO)) fs.unlinkSync(ARCHIVO_SUELTO);
-  if (contratoId) {
-    await pool.query("DELETE FROM documentos_contrato WHERE contract_id = $1", [contratoId]);
-    await pool.query("DELETE FROM contratos WHERE id = $1", [contratoId]);
-  }
-  if (otra) {
-    await pool.query("DELETE FROM empresa_usuarios WHERE empresa_id = $1", [otra.empresaId]);
-    await pool.query("DELETE FROM usuarios WHERE id = $1", [otra.usuarioId]);
-    await pool.query("DELETE FROM empresas WHERE id = $1", [otra.empresaId]);
-  }
+  await borrarContrato(contratoId);
+  await borrarOtraEmpresa(otra);
   await pool.end();
 });
 

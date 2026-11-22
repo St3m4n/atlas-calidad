@@ -2,9 +2,8 @@
 // Los archivos ya no se abren con un enlace directo a la API (que funcionaba sin
 // sesión): el sitio los pide con el token y los muestra desde memoria.
 const { test, expect } = require("@playwright/test");
-const { iniciarSesion } = require("../apoyo");
+const { API_URL, iniciarSesion, crearContratoConPdf, borrarContrato } = require("../apoyo");
 
-const API_URL = process.env.API_URL || "http://localhost:4451";
 const PDF_DE_PRUEBA = Buffer.from("%PDF-1.4\n% documento de prueba DEF-04\n");
 const ruta = (contrato, archivo) => new RegExp(`/contratos/${contrato}/file/${archivo}$`);
 
@@ -14,24 +13,11 @@ let archivoId;
 
 // Cada perfil (computador, celular, etc.) crea su propio contrato por la API
 test.beforeEach(async ({ request }, testInfo) => {
-  const login = await request.post(`${API_URL}/autenticacion/login`, {
-    data: { nombre_usuario: "admin", password: "admin" },
-  });
-  tokenAdmin = (await login.json()).token;
-
-  const creado = await request.post(`${API_URL}/contratos`, {
-    headers: { Authorization: `Bearer ${tokenAdmin}` },
-    multipart: {
-      cliente_id: "1",
-      titulo: `Contrato archivos ${testInfo.project.name} ${Date.now()}`,
-      fecha_inicio: "2026-01-01",
-      fecha_fin: "2026-12-31",
-      files: { name: "contrato-def04.pdf", mimeType: "application/pdf", buffer: PDF_DE_PRUEBA },
-    },
-  });
-  expect(creado.status()).toBe(201);
-  contratoId = (await creado.json()).id;
-
+  ({ token: tokenAdmin, contratoId } = await crearContratoConPdf(request, {
+    titulo: `Contrato archivos ${testInfo.project.name} ${Date.now()}`,
+    nombreArchivo: "contrato-def04.pdf",
+    pdf: PDF_DE_PRUEBA,
+  }));
   const archivos = await request.get(`${API_URL}/contratos/${contratoId}/files`, {
     headers: { Authorization: `Bearer ${tokenAdmin}` },
   });
@@ -39,11 +25,7 @@ test.beforeEach(async ({ request }, testInfo) => {
 });
 
 test.afterEach(async ({ request }) => {
-  if (contratoId) {
-    await request.delete(`${API_URL}/contratos/${contratoId}`, {
-      headers: { Authorization: `Bearer ${tokenAdmin}` },
-    });
-  }
+  await borrarContrato(request, tokenAdmin, contratoId);
 });
 
 test("CA-DEF04: sin sesión la API no entrega el PDF del contrato", async ({ request }) => {

@@ -2,9 +2,8 @@
 // El administrador genera el enlace desde la pantalla del contrato y otra persona,
 // sin sesión, lo abre con la contraseña. La contraseña nunca debe viajar en una URL.
 const { test, expect } = require("@playwright/test");
-const { iniciarSesion } = require("../apoyo");
+const { iniciarSesion, crearContratoConPdf, borrarContrato } = require("../apoyo");
 
-const API_URL = process.env.API_URL || "http://localhost:4451";
 const CLAVE_ENLACE = "clave-del-enlace";
 const PDF_DE_PRUEBA = Buffer.from("%PDF-1.4\n% documento de prueba para el enlace compartido\n");
 
@@ -14,31 +13,15 @@ let contratoId;
 // Cada perfil (computador, celular, etc.) crea su propio contrato por la API,
 // para que las pruebas en paralelo no se reemplacen el enlace entre sí
 test.beforeEach(async ({ request }, testInfo) => {
-  const login = await request.post(`${API_URL}/autenticacion/login`, {
-    data: { nombre_usuario: "admin", password: "admin" },
-  });
-  tokenAdmin = (await login.json()).token;
-
-  const creado = await request.post(`${API_URL}/contratos`, {
-    headers: { Authorization: `Bearer ${tokenAdmin}` },
-    multipart: {
-      cliente_id: "1",
-      titulo: `Contrato compartido ${testInfo.project.name} ${Date.now()}`,
-      fecha_inicio: "2026-01-01",
-      fecha_fin: "2026-12-31",
-      files: { name: "contrato-compartido.pdf", mimeType: "application/pdf", buffer: PDF_DE_PRUEBA },
-    },
-  });
-  expect(creado.status()).toBe(201);
-  contratoId = (await creado.json()).id;
+  ({ token: tokenAdmin, contratoId } = await crearContratoConPdf(request, {
+    titulo: `Contrato compartido ${testInfo.project.name} ${Date.now()}`,
+    nombreArchivo: "contrato-compartido.pdf",
+    pdf: PDF_DE_PRUEBA,
+  }));
 });
 
 test.afterEach(async ({ request }) => {
-  if (contratoId) {
-    await request.delete(`${API_URL}/contratos/${contratoId}`, {
-      headers: { Authorization: `Bearer ${tokenAdmin}` },
-    });
-  }
+  await borrarContrato(request, tokenAdmin, contratoId);
 });
 
 test("CA-R08: el contrato compartido se abre con su contraseña y sin enviarla en la URL", async ({ page, browser }) => {
