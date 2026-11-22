@@ -8,6 +8,7 @@ const { pool } = require("../db");
 const validate = require("../middleware/validate");
 const { requireAuth, requireAdmin } = require("../middleware/auth");
 const { createContractSchema, updateContractSchema } = require("../validations/contracts");
+const { hashContrasena } = require("../utils/contrasenas");
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || "inseguro";
@@ -624,13 +625,13 @@ router.post("/:id/share", async (req, res) => {
     // Generar token único
     const shareToken = crypto.randomBytes(32).toString("hex");
 
-    // Almacenar contraseña (en este sistema vulnerable, se almacena en texto plano)
-    // En producción debería usarse bcrypt
+    // R-08 / DEF-006: la contraseña del enlace se guarda con hash bcrypt
+    // (antes quedaba en texto plano en la columna share_password_hash)
     await pool.query(
       `UPDATE contratos 
        SET share_token = $1, share_password_hash = $2, share_enabled = true
        WHERE id = $3`,
-      [shareToken, password, contratoId]
+      [shareToken, await hashContrasena(password), contratoId]
     );
 
     await pool.query(

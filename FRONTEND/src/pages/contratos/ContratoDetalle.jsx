@@ -23,6 +23,8 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import ShareIcon from "@mui/icons-material/Share";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
+// DEF-012: faltaba este import; el diálogo de compartir se caía al mostrar el aviso
+import WarningIcon from "@mui/icons-material/Warning";
 import { useAuth } from "../../hooks/useAuth";
 import { toast } from "sonner";
 
