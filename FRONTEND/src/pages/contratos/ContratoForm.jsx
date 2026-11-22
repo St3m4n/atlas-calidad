@@ -30,6 +30,7 @@ import DialogActions from "@mui/material/DialogActions";
 import InputAdornment from "@mui/material/InputAdornment";
 import WarningIcon from "@mui/icons-material/Warning";
 import { api } from "../../lib/api";
+import { urlTemporalDePdf } from "../../lib/pdf";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useFormik } from "formik";
@@ -258,9 +259,12 @@ export default function ContratoForm() {
   const previewExistingFile = useCallback(
     async (fileId, fileName) => {
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:4451";
-        const url = `${apiUrl}/contratos/${id}/file/${fileId}`;
-        setPreviewUrl(url);
+        // DEF-04: el PDF se pide con el token de la sesión y se muestra desde
+        // memoria (antes el iframe cargaba la API directo, sin sesión)
+        const { data } = await api.get(`/contratos/${id}/file/${fileId}`, {
+          responseType: "blob",
+        });
+        setPreviewUrl(urlTemporalDePdf(data));
         setPreviewFileName(fileName || `Archivo ${fileId}`);
         setPreviewOpen(true);
       } catch {
@@ -291,7 +295,10 @@ export default function ContratoForm() {
     setPreviewOpen(false);
     // Limpiar la URL después de un pequeño delay para liberar memoria
     setTimeout(() => {
-      setPreviewUrl(null);
+      setPreviewUrl((url) => {
+        if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
+        return null;
+      });
       setPreviewFileName("");
     }, 300);
   }, []);

@@ -1,5 +1,3 @@
-const path = require("path");
-const fs = require("fs");
 const express = require("express");
 const multer = require("multer");
 const jwt = require("jsonwebtoken");
@@ -415,8 +413,33 @@ router.put("/:id", upload.array("files", 10), validate(updateContractSchema), as
   }
 });
 
+// DEF-04: los archivos de un contrato solo se entregan a usuarios de la empresa
+// dueña del cliente. Si el contrato es de otra empresa (o no existe) responde 404,
+// igual que GET /contratos/:id, para no revelar que existe.
+async function contratoDeMiEmpresa(req, res, next) {
+  const noEncontrado = () =>
+    res.status(404).json({
+      error: "No encontrado",
+      glosa: "Contrato no encontrado o no pertenece a tu empresa",
+    });
+  // Un número de contrato que no es un entero no existe (y no llega a la base de datos)
+  if (!/^\d+$/.test(req.params.id)) return noEncontrado();
+  try {
+    const result = await pool.query(
+      `SELECT c.id FROM contratos c
+       INNER JOIN clientes cl ON cl.id = c.cliente_id
+       WHERE c.id = $1 AND cl.empresa_id = $2`,
+      [req.params.id, req.authUser.empresaId]
+    );
+    if (result.rows.length === 0) return noEncontrado();
+    return next();
+  } catch (err) {
+    return next(err);
+  }
+}
+
 // Endpoint para listar todos los archivos de un contrato
-router.get("/:id/files", async (req, res) => {
+router.get("/:id/files", requireAuth, contratoDeMiEmpresa, async (req, res) => {
   try {
     const docs = await pool.query(
       "SELECT id, nombre_archivo, created_at FROM documentos_contrato WHERE contract_id=$1 ORDER BY created_at DESC",
@@ -433,7 +456,7 @@ router.get("/:id/files", async (req, res) => {
 });
 
 // Endpoint para descargar un archivo específico
-router.get("/:id/file/:fileId", async (req, res) => {
+router.get("/:id/file/:fileId", requireAuth, contratoDeMiEmpresa, async (req, res) => {
   try {
     const doc = await pool.query(
       "SELECT document, nombre_archivo FROM documentos_contrato WHERE id=$1 AND contract_id=$2",
@@ -456,7 +479,7 @@ router.get("/:id/file/:fileId", async (req, res) => {
 });
 
 // Endpoint legacy para compatibilidad (devuelve el último archivo)
-router.get("/:id/file", async (req, res) => {
+router.get("/:id/file", requireAuth, contratoDeMiEmpresa, async (req, res) => {
   try {
     const doc = await pool.query(
       "SELECT document, nombre_archivo FROM documentos_contrato WHERE contract_id=$1 ORDER BY id DESC LIMIT 1",

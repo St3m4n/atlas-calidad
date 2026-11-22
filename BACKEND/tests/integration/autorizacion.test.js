@@ -6,47 +6,22 @@
 const request = require("supertest");
 const app = require("../../src/app");
 const { pool } = require("../../src/db");
+const { conToken, iniciarSesion, registrarOtraEmpresa, borrarOtraEmpresa } = require("../apoyo");
 
 let tokenAdmin;
 let tokenEditor;
 let tokenOtraEmpresa;
 let otra = null; // administrador y empresa creados para la prueba
 
-async function iniciarSesion(usuario, clave) {
-  const res = await request(app)
-    .post("/autenticacion/login")
-    .send({ nombre_usuario: usuario, password: clave });
-  return res.body.token;
-}
-
-const conToken = (token) => ({ Authorization: `Bearer ${token}` });
-
 beforeAll(async () => {
   tokenAdmin = await iniciarSesion("admin", "admin");
   tokenEditor = await iniciarSesion("editor", "editor");
-
-  // Segunda empresa con su propio administrador, creada con el registro público
-  const sufijo = Date.now();
-  const registro = await request(app)
-    .post("/empresas")
-    .send({
-      usuario: {
-        nombre_usuario: `adminb${sufijo}`,
-        contrasena_hash: "ClaveEmpresaB1",
-        correo: `adminb${sufijo}@prueba.cl`,
-      },
-      empresa: { nombre: `Empresa B ${sufijo}`, correo: `empresab${sufijo}@prueba.cl` },
-    });
-  otra = { usuarioId: registro.body.usuario.id, empresaId: registro.body.empresa.id };
-  tokenOtraEmpresa = await iniciarSesion(`adminb${sufijo}`, "ClaveEmpresaB1");
+  otra = await registrarOtraEmpresa("adminb");
+  tokenOtraEmpresa = otra.token;
 });
 
 afterAll(async () => {
-  if (otra) {
-    await pool.query("DELETE FROM empresa_usuarios WHERE empresa_id = $1", [otra.empresaId]);
-    await pool.query("DELETE FROM usuarios WHERE id = $1", [otra.usuarioId]);
-    await pool.query("DELETE FROM empresas WHERE id = $1", [otra.empresaId]);
-  }
+  await borrarOtraEmpresa(otra);
   await pool.end();
 });
 

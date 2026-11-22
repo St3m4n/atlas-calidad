@@ -488,7 +488,8 @@
     "/contratos/{id}/files": {
       "get": {
         "summary": "Listar archivos del contrato",
-        "description": "Retorna la lista de todos los archivos asociados a un contrato, ordenados por fecha de creación descendente.",
+        "description": "Retorna la lista de todos los archivos asociados a un contrato, ordenados por fecha de creación descendente. Requiere autenticación y que el contrato pertenezca a la empresa del usuario.",
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
           {
             "in": "path",
@@ -516,14 +517,15 @@
               }
             }
           },
-          "404": { "description": "Contrato no encontrado" }
+          "401": { "description": "No autorizado" },
+          "404": { "description": "Contrato no encontrado o de otra empresa" }
         }
       }
     },
     "/contratos/{id}/file/{fileId}": {
       "get": {
         "summary": "Descargar archivo específico del contrato",
-        "description": "Descarga un archivo PDF específico de un contrato por su ID de archivo.",
+        "description": "Descarga un archivo PDF específico de un contrato por su ID de archivo. Requiere autenticación y que el contrato pertenezca a la empresa del usuario.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
           {
@@ -551,7 +553,7 @@
             }
           },
           "401": { "description": "No autorizado" },
-          "404": { "description": "Archivo no encontrado" }
+          "404": { "description": "Contrato de otra empresa o archivo no encontrado" }
         }
       },
       "delete": {
@@ -596,7 +598,8 @@
     "/contratos/{id}/file": {
       "get": {
         "summary": "Ver último archivo PDF del contrato",
-        "description": "Endpoint legacy que retorna el último archivo subido del contrato (para compatibilidad).",
+        "description": "Endpoint legacy que retorna el último archivo subido del contrato (para compatibilidad). Requiere autenticación y que el contrato pertenezca a la empresa del usuario.",
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
           {
             "in": "path",
@@ -614,7 +617,8 @@
               }
             }
           },
-          "404": { "description": "Archivo no encontrado" }
+          "401": { "description": "No autorizado" },
+          "404": { "description": "Contrato de otra empresa o sin archivos" }
         }
       }
     },
