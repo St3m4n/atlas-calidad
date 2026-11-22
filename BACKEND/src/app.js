@@ -1,5 +1,3 @@
-const path = require("path");
-const fs = require("fs");
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
@@ -28,14 +26,14 @@ const app = express();
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3351";
 
 // Encabezados de seguridad (hallazgos de OWASP ZAP y SonarQube S5689).
-// La vista previa de PDF del frontend muestra archivos de la API en un iframe,
-// por eso X-Frame-Options se reemplaza por CSP frame-ancestors, que permite
-// enmarcar la API solo desde el propio sitio de Atlas (anti-clickjacking).
+// DEF-04: la vista previa de PDF ya no enmarca la API (el sitio pide el archivo
+// con el token y lo muestra desde memoria), así que ningún sitio puede mostrar
+// la API dentro de un iframe (anti-clickjacking).
 app.use(
   helmet({
-    xFrameOptions: false,
+    xFrameOptions: { action: "deny" },
     contentSecurityPolicy: {
-      directives: { frameAncestors: ["'self'", FRONTEND_URL] },
+      directives: { frameAncestors: ["'none'"] },
     },
   })
 );
@@ -47,9 +45,6 @@ app.use(cors({ origin: FRONTEND_URL }));
 app.use(rateLimit(opcionesLimiteGeneral()));
 app.use(express.json());
 app.use(morgan("dev"));
-
-const uploadsDir = path.join(__dirname, "..", "uploads", "contracts");
-fs.mkdirSync(uploadsDir, { recursive: true });
 
 app.use("/autenticacion", authRoutes);
 app.use("/usuarios", userRoutes);
@@ -68,10 +63,17 @@ app.get("/openapi.json", (req, res) => {
   res.json(openapi);
 });
 
-app.use("/files/contracts", express.static(uploadsDir));
+// DEF-04: se quitó app.use("/files/contracts", express.static(...)), que publicaba
+// sin sesión todo lo que hubiera en la carpeta uploads/contracts. Los PDF se
+// guardan en la base de datos y solo se entregan por /contratos/:id/file/:fileId.
 
 app.get("/", (req, res) => {
   res.json({ name: "Atlas", status: "ok" });
+});
+
+// Ruta inexistente: 404 en JSON, en vez de la página HTML "Cannot GET" de Express
+app.use((req, res) => {
+  res.status(404).json({ error: "No encontrado", glosa: "La ruta solicitada no existe" });
 });
 
 // DEF-004 y R-04: los errores sin responder se contestan en JSON y sin detalles

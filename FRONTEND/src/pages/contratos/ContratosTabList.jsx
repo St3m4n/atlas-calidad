@@ -32,7 +32,6 @@ export default function ContratosTabList({
   onLoad,
   loading = false,
 }) {
-  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:4451";
   const navigate = useNavigate();
   const { role } = useAuth();
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);

@@ -26,11 +26,10 @@ import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 // DEF-012: faltaba este import; el diálogo de compartir se caía al mostrar el aviso
 import WarningIcon from "@mui/icons-material/Warning";
 import { useAuth } from "../../hooks/useAuth";
+import { abrirPdfEnPestana } from "../../lib/pdf";
 import { toast } from "sonner";
 
 export default function ContratoDetalle() {
-  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:4451";
-
   const { id } = useParams();
   const [item, setItem] = useState(null);
   const [files, setFiles] = useState([]);
@@ -90,6 +89,15 @@ export default function ContratoDetalle() {
     } catch {
       toast.error("Error al eliminar contrato");
     }
+  };
+
+  // DEF-04: el PDF se pide con el token de la sesión y se abre desde memoria
+  // (antes era un enlace directo a la API que funcionaba sin iniciar sesión)
+  const onViewFile = async (fileId) => {
+    const abierto = await abrirPdfEnPestana(() =>
+      api.get(`/contratos/${id}/file/${fileId}`, { responseType: "blob" })
+    );
+    if (!abierto) toast.error("No se pudo abrir el archivo");
   };
 
   const onDeleteFile = async (fileId, fileName) => {
@@ -238,9 +246,7 @@ export default function ContratoDetalle() {
                       <Button
                         size="small"
                         variant="outlined"
-                        href={`${apiUrl}/contratos/${id}/file/${file.id}`}
-                        target="_blank"
-                        rel="noreferrer"
+                        onClick={() => onViewFile(file.id)}
                       >
                         Ver
                       </Button>

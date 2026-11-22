@@ -17,6 +17,7 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import LockIcon from "@mui/icons-material/Lock";
 import { api } from "../../lib/api";
+import { abrirPdfEnPestana } from "../../lib/pdf";
 import { toast } from "sonner";
 
 export default function ContratoCompartido() {
@@ -67,28 +68,16 @@ export default function ContratoCompartido() {
     }
   };
 
-  // R-08: el PDF se pide con POST (contraseña en el cuerpo) y se abre desde
-  // memoria; la pestaña se abre antes de la petición para que el navegador
-  // no la bloquee como ventana emergente
+  // R-08: el PDF se pide con POST (contraseña en el cuerpo) y se abre desde memoria
   const handleViewFile = async (fileId) => {
-    const ventana = window.open("", "_blank");
-    try {
-      const { data } = await api.post(
+    const abierto = await abrirPdfEnPestana(() =>
+      api.post(
         `/public/contratos/${token}/file/${fileId}`,
         { password },
         { responseType: "blob" }
-      );
-      const url = URL.createObjectURL(new Blob([data], { type: "application/pdf" }));
-      if (ventana) {
-        ventana.location.href = url;
-      } else {
-        window.open(url, "_blank");
-      }
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
-    } catch {
-      ventana?.close();
-      toast.error("No se pudo abrir el archivo");
-    }
+      )
+    );
+    if (!abierto) toast.error("No se pudo abrir el archivo");
   };
 
   if (!verified) {
