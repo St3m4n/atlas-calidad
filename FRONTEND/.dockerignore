@@ -1,0 +1,9 @@
+# Lo que no se copia a la imagen con "COPY . .":
+# - node_modules y dist: se generan dentro de la imagen (npm ci y npm run build);
+#   los de la carpeta local pueden tener binarios de otro sistema (Windows)
+# - .env: la URL de la API llega como argumento de construcción (VITE_API_URL)
+node_modules
+dist
+.env
+.env.*
+!.env.example
