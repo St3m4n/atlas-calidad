@@ -11,7 +11,8 @@ COPY package*.json ./
 # con al menos dos semanas de publicadas. Antes se borraba el lockfile y npm install
 # tomaba en cada construcción la versión más reciente de cada paquete.
 # El lockfile incluye los binarios de Linux de rollup y esbuild.
-RUN npm ci
+# --ignore-scripts: no ejecuta los scripts de instalación de las dependencias
+RUN npm ci --ignore-scripts
 
 # .dockerignore deja fuera node_modules, dist y .env de la carpeta local
 COPY . .
