@@ -9,6 +9,7 @@ const rateLimit = require("express-rate-limit");
 
 const { pool } = require("./db");
 const { opcionesLimiteGeneral } = require("./middleware/limites");
+const { manejarErrores } = require("./middleware/errores");
 
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/users");
@@ -72,6 +73,10 @@ app.use("/files/contracts", express.static(uploadsDir));
 app.get("/", (req, res) => {
   res.json({ name: "Atlas", status: "ok" });
 });
+
+// DEF-004 y R-04: los errores sin responder se contestan en JSON y sin detalles
+// internos (va al final, después de todas las rutas)
+app.use(manejarErrores);
 
 const PORT = process.env.PORT || 3000;
 
