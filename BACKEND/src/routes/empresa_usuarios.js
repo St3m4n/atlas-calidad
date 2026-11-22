@@ -1,6 +1,6 @@
 const express = require("express");
 const { pool } = require("../db");
-const jwt = require("jsonwebtoken");
+const { listarDeLaEmpresa } = require("../utils/listados");
 const validate = require("../middleware/validate");
 const { requireAuth, requireAdmin } = require("../middleware/auth");
 const {
@@ -10,18 +10,6 @@ const {
 const { hashContrasena } = require("../utils/contrasenas");
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || "inseguro";
-
-function getUserFromAuthHeader(req) {
-  const auth = req.headers.authorization || "";
-  if (!auth.startsWith("Bearer ")) return null;
-  try {
-    const token = auth.substring(7);
-    return jwt.verify(token, JWT_SECRET);
-  } catch {
-    return null;
-  }
-}
 
 // DEF-05 (RB-5): solo un administrador agrega usuarios a su empresa
 // (antes bastaba cualquier sesión, incluida la de un editor)
@@ -79,20 +67,7 @@ router.post("/", requireAdmin, validate(createEmpresaUsuarioSchema), async (req,
   }
 });
 
-router.get("/", async (req, res) => {
-  try {
-    const authUser = getUserFromAuthHeader(req);
-
-    if (!authUser || !authUser.empresaId) {
-      return res.status(401).json({
-        error: "No autorizado",
-        glosa: "Token inválido o sin empresa asociada",
-      });
-    }
-
-    const empresaId = authUser.empresaId;
-    const result = await pool.query(
-      `
+router.get("/", requireAuth, listarDeLaEmpresa("Error al listar usuarios", `
       SELECT 
         u.id,
         u.nombre_usuario,
@@ -105,19 +80,7 @@ router.get("/", async (req, res) => {
       LEFT JOIN roles r ON r.id = eu.rol_id
       WHERE eu.empresa_id = $1
       ORDER BY eu.created_at DESC
-    `,
-      [empresaId]
-    );
-
-    res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al listar usuarios",
-      glosa: err.message || err.toString(),
-    });
-  }
-});
+    `));
 
 // DEF-05 (RB-2): solo se entregan vínculos de la empresa del usuario
 router.get("/:id", requireAuth, async (req, res) => {

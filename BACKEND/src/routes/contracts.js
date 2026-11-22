@@ -1,28 +1,16 @@
 const express = require("express");
 const multer = require("multer");
-const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const { pool } = require("../db");
+const { listarDeLaEmpresa } = require("../utils/listados");
 const validate = require("../middleware/validate");
 const { requireAuth, requireAdmin } = require("../middleware/auth");
 const { createContractSchema, updateContractSchema } = require("../validations/contracts");
 const { hashContrasena } = require("../utils/contrasenas");
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || "inseguro";
 const storage = multer.memoryStorage();
 const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } }); // 10MB por archivo
-
-function getUserFromAuthHeader(req) {
-  const auth = req.headers.authorization || "";
-  if (!auth.startsWith("Bearer ")) return null;
-  try {
-    const token = auth.substring(7);
-    return jwt.verify(token, JWT_SECRET);
-  } catch {
-    return null;
-  }
-}
 
 // DEF-05: crear un contrato exige sesión, y el cliente debe ser de la empresa del usuario
 router.post("/", requireAuth, upload.array("files", 10), validate(createContractSchema), async (req, res) => {
@@ -81,19 +69,7 @@ router.post("/", requireAuth, upload.array("files", 10), validate(createContract
   }
 });
 
-router.get("/", async (req, res) => {
-  try {
-    const authUser = getUserFromAuthHeader(req);
-
-    if (!authUser || !authUser.empresaId) {
-      return res.status(401).json({
-        error: "No autorizado",
-        glosa: "Token inválido o sin empresa asociada",
-      });
-    }
-    const empresaId = authUser.empresaId;
-    const result = await pool.query(
-      `
+router.get("/", requireAuth, listarDeLaEmpresa("Error al listar contratos", `
       SELECT 
         c.id, 
         c.titulo, 
@@ -106,29 +82,11 @@ router.get("/", async (req, res) => {
       INNER JOIN clientes cl ON cl.id = c.cliente_id
       WHERE cl.empresa_id = $1
       ORDER BY c.id DESC
-    `,
-      [empresaId]
-    );
-    res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al listar contratos",
-      glosa: err.message || err.toString(),
-    });
-  }
-});
+    `));
 
-router.get("/estados", async (req, res) => {
+router.get("/estados", requireAuth, async (req, res) => {
   try {
-    const authUser = getUserFromAuthHeader(req);
-
-    if (!authUser || !authUser.empresaId) {
-      return res.status(401).json({
-        error: "No autorizado",
-        glosa: "Token inválido o sin empresa asociada",
-      });
-    }
+    const authUser = req.authUser;
 
     const empresaId = authUser.empresaId;
     const hoy = new Date();
@@ -180,16 +138,9 @@ router.get("/estados", async (req, res) => {
   }
 });
 
-router.get("/dashboard", async (req, res) => {
+router.get("/dashboard", requireAuth, async (req, res) => {
   try {
-    const authUser = getUserFromAuthHeader(req);
-
-    if (!authUser || !authUser.empresaId) {
-      return res.status(401).json({
-        error: "No autorizado",
-        glosa: "Token inválido o sin empresa asociada",
-      });
-    }
+    const authUser = req.authUser;
 
     const empresaId = authUser.empresaId;
     const hoy = new Date();
@@ -291,16 +242,9 @@ router.get("/:id", requireAuth, async (req, res) => {
   }
 });
 
-router.put("/:id", upload.array("files", 10), validate(updateContractSchema), async (req, res) => {
+router.put("/:id", requireAuth, upload.array("files", 10), validate(updateContractSchema), async (req, res) => {
   try {
-    const authUser = getUserFromAuthHeader(req);
-
-    if (!authUser || !authUser.empresaId) {
-      return res.status(401).json({
-        error: "No autorizado",
-        glosa: "Token inválido o sin empresa asociada",
-      });
-    }
+    const authUser = req.authUser;
 
     const empresaId = authUser.empresaId;
     const contratoId = req.params.id;
@@ -502,16 +446,9 @@ router.get("/:id/file", requireAuth, contratoDeMiEmpresa, async (req, res) => {
 });
 
 // Endpoint para eliminar un archivo específico
-router.delete("/:id/file/:fileId", async (req, res) => {
+router.delete("/:id/file/:fileId", requireAuth, async (req, res) => {
   try {
-    const authUser = getUserFromAuthHeader(req);
-
-    if (!authUser || !authUser.empresaId) {
-      return res.status(401).json({
-        error: "No autorizado",
-        glosa: "Token inválido o sin empresa asociada",
-      });
-    }
+    const authUser = req.authUser;
 
     const empresaId = authUser.empresaId;
     const contratoId = req.params.id;
@@ -607,16 +544,9 @@ router.delete("/:id", requireAdmin, async (req, res) => {
 });
 
 // Endpoint para generar/compartir enlace con contraseña
-router.post("/:id/share", async (req, res) => {
+router.post("/:id/share", requireAuth, async (req, res) => {
   try {
-    const authUser = getUserFromAuthHeader(req);
-
-    if (!authUser || !authUser.empresaId) {
-      return res.status(401).json({
-        error: "No autorizado",
-        glosa: "Token inválido o sin empresa asociada",
-      });
-    }
+    const authUser = req.authUser;
 
     const empresaId = authUser.empresaId;
     const contratoId = req.params.id;
@@ -683,16 +613,9 @@ router.post("/:id/share", async (req, res) => {
 });
 
 // Endpoint para desactivar compartir
-router.delete("/:id/share", async (req, res) => {
+router.delete("/:id/share", requireAuth, async (req, res) => {
   try {
-    const authUser = getUserFromAuthHeader(req);
-
-    if (!authUser || !authUser.empresaId) {
-      return res.status(401).json({
-        error: "No autorizado",
-        glosa: "Token inválido o sin empresa asociada",
-      });
-    }
+    const authUser = req.authUser;
 
     const empresaId = authUser.empresaId;
     const contratoId = req.params.id;
@@ -739,16 +662,9 @@ router.delete("/:id/share", async (req, res) => {
 });
 
 // Endpoint para obtener información del enlace compartido (solo para el dueño)
-router.get("/:id/share", async (req, res) => {
+router.get("/:id/share", requireAuth, async (req, res) => {
   try {
-    const authUser = getUserFromAuthHeader(req);
-
-    if (!authUser || !authUser.empresaId) {
-      return res.status(401).json({
-        error: "No autorizado",
-        glosa: "Token inválido o sin empresa asociada",
-      });
-    }
+    const authUser = req.authUser;
 
     const empresaId = authUser.empresaId;
     const contratoId = req.params.id;

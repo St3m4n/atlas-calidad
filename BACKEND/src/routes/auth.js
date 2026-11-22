@@ -1,13 +1,12 @@
 const express = require("express");
 const rateLimit = require("express-rate-limit");
-const jwt = require("jsonwebtoken");
 const { pool } = require("../db");
 const validate = require("../middleware/validate");
+const { firmarToken } = require("../middleware/auth");
 const { loginSchema } = require("../validations/auth");
 const { verificarContrasena } = require("../utils/contrasenas");
 const { opcionesLimiteLogin } = require("../middleware/limites");
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || "inseguro";
 
 // Freno a los intentos de adivinar contraseñas (fuerza bruta): ver middleware/limites.js
 router.post("/login", rateLimit(opcionesLimiteLogin()), validate(loginSchema), async (req, res) => {
@@ -53,18 +52,15 @@ router.post("/login", rateLimit(opcionesLimiteLogin()), validate(loginSchema), a
       ? empresaUsuarioResult.rows[0].rol_nombre 
       : null;
 
-    const token = jwt.sign(
-      { 
-        usuarioId: user.id, 
-        nombreUsuario: user.nombre_usuario,
-        empresaUsuarioId: empresaUsuarioId,
-        empresaId: empresaId,
-        rolId: rolId,
-        rolNombre: rolNombre
-      },
-      JWT_SECRET,
-      { expiresIn: "2h" }
-    );
+    // R-01 y R-06: el token se firma en middleware/auth.js con la clave de JWT_SECRET
+    const token = firmarToken({
+      usuarioId: user.id,
+      nombreUsuario: user.nombre_usuario,
+      empresaUsuarioId: empresaUsuarioId,
+      empresaId: empresaId,
+      rolId: rolId,
+      rolNombre: rolNombre,
+    });
 
     await pool.query(
       "INSERT INTO auditoria (usuario_id, accion) VALUES ($1, $2)",

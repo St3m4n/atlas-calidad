@@ -61,6 +61,14 @@ jobs:
         with:
           fetch-depth: 0          # SonarQube necesita el historial completo
 
+      # R-01: docker compose y la API no arrancan sin JWT_SECRET. Cada ejecución
+      # usa una clave aleatoria nueva, oculta en el registro y sin escribirla en archivos
+      - name: Generar una clave JWT aleatoria para esta ejecución
+        run: |
+          clave="$(openssl rand -hex 32)"
+          echo "::add-mask::$clave"
+          echo "JWT_SECRET=$clave" >> "$GITHUB_ENV"
+
       - name: Encender la base de datos de pruebas
         run: docker compose up -d --wait atlas-postgres-et
 
@@ -105,6 +113,14 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
+
+      # R-01: docker compose y la API no arrancan sin JWT_SECRET. Cada ejecución
+      # usa una clave aleatoria nueva, oculta en el registro y sin escribirla en archivos
+      - name: Generar una clave JWT aleatoria para esta ejecución
+        run: |
+          clave="$(openssl rand -hex 32)"
+          echo "::add-mask::$clave"
+          echo "JWT_SECRET=$clave" >> "$GITHUB_ENV"
 
       - name: Construir y encender Atlas completo con Docker
         run: docker compose up -d --build --wait

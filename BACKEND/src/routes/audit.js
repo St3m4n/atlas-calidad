@@ -1,21 +1,9 @@
 const express = require("express");
 const { pool } = require("../db");
-const jwt = require("jsonwebtoken");
+const { listarDeLaEmpresa } = require("../utils/listados");
 const { requireAuth } = require("../middleware/auth");
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || "inseguro";
-
-function getUserFromAuthHeader(req) {
-  const auth = req.headers.authorization || "";
-  if (!auth.startsWith("Bearer ")) return null;
-  try {
-    const token = auth.substring(7);
-    return jwt.verify(token, JWT_SECRET);
-  } catch {
-    return null;
-  }
-}
 
 // DEF-002: solo un usuario con sesión escribe en la bitácora, y queda registrado
 // con el nombre de su token (antes cualquiera podía escribir sin iniciar sesión)
@@ -35,29 +23,10 @@ router.post("/", requireAuth, async (req, res) => {
   }
 });
 
-router.get("/", async (req, res) => {
-  try {
-    const authUser = getUserFromAuthHeader(req);
-    if (!authUser || !authUser.empresaId) {
-      return res.status(401).json({
-        error: "No autorizado",
-        glosa: "Token inválido o sin empresa asociada",
-      });
-    }
-
-    const result = await pool.query(
-      `SELECT a.* FROM auditoria a
+router.get("/", requireAuth, listarDeLaEmpresa("Error al listar logs", `SELECT a.* FROM auditoria a
        INNER JOIN usuarios u ON u.nombre_usuario = a.usuario_id
        INNER JOIN empresa_usuarios eu ON eu.usuario_id = u.id
        WHERE eu.empresa_id = $1
-       ORDER BY a.id DESC`,
-      [authUser.empresaId]
-    );
-    res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Error al listar logs", glosa: err.message || err.toString() });
-  }
-});
+       ORDER BY a.id DESC`));
 
 module.exports = router;

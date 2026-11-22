@@ -33,7 +33,9 @@ services:
       - PORT=4000
       - DATABASE_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@atlas-postgres-et:5432/${POSTGRES_DB:-atlas}
       - NODE_ENV=${NODE_ENV:-production}
-      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
+      # R-01: sin JWT_SECRET en el archivo .env ni docker compose ni la API arrancan
+      # (antes se usaba una clave por defecto que aparece en el propio repositorio)
+      - JWT_SECRET=${JWT_SECRET:?Falta JWT_SECRET en el archivo .env (ver .env.example)}
       - FRONTEND_URL=http://localhost:${PORT_FRONTEND:-3351}
       # Límites de peticiones (BACKEND/src/middleware/limites.js); para el perfil
       # "carga" de k6 (200 personas desde un mismo equipo) se debe subir el primero

@@ -1,26 +1,12 @@
 const express = require("express");
 const { pool } = require("../db");
-const jwt = require("jsonwebtoken");
+const { listarDeLaEmpresa } = require("../utils/listados");
 const validate = require("../middleware/validate");
 const { requireAuth, requireAdmin } = require("../middleware/auth");
 const { createUserSchema, updateUserSchema } = require("../validations/users");
 const { hashContrasena } = require("../utils/contrasenas");
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || "inseguro";
-
-function getUserFromAuthHeader(req) {
-  const auth = req.headers.authorization || "";
-  if (!auth.startsWith("Bearer ")) return null;
-  try {
-    const token = auth.substring(7);
-    const decoded = jwt.verify(token, JWT_SECRET);
-    return decoded;
-  } catch (error) {
-    console.error(error);
-    return null;
-  }
-}
 
 // DEF-001: solo un administrador puede crear usuarios (antes no exigía sesión)
 router.post("/", requireAdmin, validate(createUserSchema), async (req, res) => {
@@ -40,45 +26,15 @@ router.post("/", requireAdmin, validate(createUserSchema), async (req, res) => {
   }
 });
 
-router.get("/", async (req, res) => {
-  try {
-    const authUser = getUserFromAuthHeader(req);
-    console.log("authUser", authUser);
-    if (!authUser || !authUser.empresaId) {
-      return res.status(401).json({
-        error: "No autorizado",
-        glosa: "Token inválido o sin empresa asociada",
-      });
-    }
-
-    const result = await pool.query(
-      `SELECT DISTINCT u.id, u.nombre_usuario, u.correo, u.created_at 
+router.get("/", requireAuth, listarDeLaEmpresa("Error al listar usuarios", `SELECT DISTINCT u.id, u.nombre_usuario, u.correo, u.created_at 
        FROM usuarios u
        INNER JOIN empresa_usuarios eu ON eu.usuario_id = u.id
        WHERE eu.empresa_id = $1
-       ORDER BY u.id DESC`,
-      [authUser.empresaId]
-    );
+       ORDER BY u.id DESC`));
 
-    res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al listar usuarios",
-      glosa: err.message || err.toString(),
-    });
-  }
-});
-
-router.get("/:id", async (req, res) => {
+router.get("/:id", requireAuth, async (req, res) => {
   try {
-    const authUser = getUserFromAuthHeader(req);
-    if (!authUser || !authUser.empresaId) {
-      return res.status(401).json({
-        error: "No autorizado",
-        glosa: "Token inválido o sin empresa asociada",
-      });
-    }
+    const authUser = req.authUser;
 
     // Obtener información del usuario y su rol desde empresa_usuarios
     const result = await pool.query(
