@@ -1,5 +1,6 @@
 const express = require("express");
 const { pool } = require("../db");
+const { listarDeLaEmpresa } = require("../utils/listados");
 const { requireAuth } = require("../middleware/auth");
 
 const router = express.Router();
@@ -22,23 +23,10 @@ router.post("/", requireAuth, async (req, res) => {
   }
 });
 
-router.get("/", requireAuth, async (req, res) => {
-  try {
-    const authUser = req.authUser;
-
-    const result = await pool.query(
-      `SELECT a.* FROM auditoria a
+router.get("/", requireAuth, listarDeLaEmpresa("Error al listar logs", `SELECT a.* FROM auditoria a
        INNER JOIN usuarios u ON u.nombre_usuario = a.usuario_id
        INNER JOIN empresa_usuarios eu ON eu.usuario_id = u.id
        WHERE eu.empresa_id = $1
-       ORDER BY a.id DESC`,
-      [authUser.empresaId]
-    );
-    res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Error al listar logs", glosa: err.message || err.toString() });
-  }
-});
+       ORDER BY a.id DESC`));
 
 module.exports = router;

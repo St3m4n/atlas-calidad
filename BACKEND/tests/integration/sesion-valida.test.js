@@ -19,6 +19,8 @@ let clienteId;
 let contratoId;
 let archivoId;
 let empresaCreadaId;
+let datosCliente;
+let clienteCreado;
 
 const conToken = () => ({ Authorization: `Bearer ${token}` });
 
@@ -26,8 +28,9 @@ beforeAll(async () => {
   token = await iniciarSesion("admin", "admin");
   usuarioId = jwt.decode(token).usuarioId;
 
-  const cliente = await request(app).post("/clientes").set(conToken()).send(clienteDePrueba(`Cliente R06 ${SUFIJO}`));
-  clienteId = cliente.body.id;
+  datosCliente = clienteDePrueba(`Cliente R06 ${SUFIJO}`);
+  clienteCreado = await request(app).post("/clientes").set(conToken()).send(datosCliente);
+  clienteId = clienteCreado.body.id;
   ({ contratoId, archivoId } = await crearContratoConPdf(token, {
     clienteId,
     titulo: `Contrato R06 ${SUFIJO}`,
@@ -73,13 +76,19 @@ describe("R-06 Las consultas responden con una sesión válida", () => {
 });
 
 describe("R-06 Las modificaciones responden con una sesión válida", () => {
-  test("PUT /clientes/:id -> 200", async () => {
-    const res = await request(app)
-      .put(`/clientes/${clienteId}`)
-      .set(conToken())
-      .send(clienteDePrueba(`Cliente R06 editado ${SUFIJO}`));
+  // Crear y actualizar un cliente leen los 25 campos con la misma función:
+  // cada dato debe quedar guardado en su propia columna
+  test("POST /clientes -> 201 y guarda cada dato en su columna", () => {
+    expect(clienteCreado.status).toBe(201);
+    expect(clienteCreado.body).toMatchObject(datosCliente);
+    expect(clienteCreado.body.es_empresa).toBe(false);
+  });
+
+  test("PUT /clientes/:id -> 200 y guarda cada dato en su columna", async () => {
+    const editado = { ...clienteDePrueba(`Cliente R06 editado ${SUFIJO}`), es_empresa: true };
+    const res = await request(app).put(`/clientes/${clienteId}`).set(conToken()).send(editado);
     expect(res.status).toBe(200);
-    expect(res.body.nombre).toBe(`Cliente R06 editado ${SUFIJO}`);
+    expect(res.body).toMatchObject(editado);
   });
 
   test("PUT /contratos/:id -> 200", async () => {

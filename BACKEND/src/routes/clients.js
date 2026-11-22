@@ -1,39 +1,31 @@
 const express = require("express");
 const { pool } = require("../db");
+const { listarDeLaEmpresa } = require("../utils/listados");
 const { requireAuth } = require("../middleware/auth");
 const validate = require("../middleware/validate");
 const { clienteSchema } = require("../validations/clients");
 const router = express.Router();
 
-router.post("/", requireAuth, validate(clienteSchema), async (req, res) => {
-  const {
-    nombre,
-    correo,
-    telefono,
-    direccion,
-    es_empresa = false,
-    nombre_banco = null,
-    numero_cuenta = null,
-    titular_cuenta = null,
-    rut = null,
-    nombre_fantasia = null,
-    giro_actividad_economica = null,
-    nombre_representante = null,
-    cargo_representante = null,
-    correo_representante = null,
-    telefono_representante = null,
-    relacion_representante = null,
-    direccion_calle = null,
-    direccion_numero = null,
-    direccion_ciudad = null,
-    direccion_region = null,
-    sitio_web = null,
-    telefono_corporativo = null,
-    metodo_pago = null,
-    dia_pago = null,
-    moneda = null,
-  } = req.body;
+// R-06: los datos del cliente se leen igual al crear y al actualizar
+// (antes la lista de los 25 campos estaba repetida en las dos rutas).
+// El orden es el de las columnas en el INSERT y el UPDATE.
+const CAMPOS_CLIENTE = [
+  "nombre", "correo", "telefono", "direccion",
+  "es_empresa", "nombre_banco", "numero_cuenta", "titular_cuenta",
+  "rut", "nombre_fantasia", "giro_actividad_economica", "nombre_representante",
+  "cargo_representante", "correo_representante", "telefono_representante", "relacion_representante",
+  "direccion_calle", "direccion_numero", "direccion_ciudad", "direccion_region",
+  "sitio_web", "telefono_corporativo", "metodo_pago", "dia_pago",
+  "moneda",
+];
 
+// Valores enviados, en el orden de CAMPOS_CLIENTE. Un campo que no viene queda
+// en null, salvo es_empresa, que queda en false.
+function valoresDelCliente(datos) {
+  return CAMPOS_CLIENTE.map((campo) => datos[campo] ?? (campo === "es_empresa" ? false : null));
+}
+
+router.post("/", requireAuth, validate(clienteSchema), async (req, res) => {
   try {
     const authUser = req.authUser;
 
@@ -48,41 +40,14 @@ router.post("/", requireAuth, validate(clienteSchema), async (req, res) => {
         metodo_pago, dia_pago, moneda,
         empresa_id
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26) RETURNING *`,
-      [
-        nombre,
-        correo,
-        telefono,
-        direccion,
-        es_empresa,
-        nombre_banco,
-        numero_cuenta,
-        titular_cuenta,
-        rut,
-        nombre_fantasia,
-        giro_actividad_economica,
-        nombre_representante,
-        cargo_representante,
-        correo_representante,
-        telefono_representante,
-        relacion_representante,
-        direccion_calle,
-        direccion_numero,
-        direccion_ciudad,
-        direccion_region,
-        sitio_web,
-        telefono_corporativo,
-        metodo_pago,
-        dia_pago,
-        moneda,
-        empresaId,
-      ]
+      [...valoresDelCliente(req.body), empresaId]
     );
 
     await pool.query(
       "INSERT INTO auditoria (usuario_id, accion) VALUES ($1, $2)",
       [
         authUser?.nombreUsuario || null,
-        `CLIENTES_CREAR: creó cliente ${nombre}`,
+        `CLIENTES_CREAR: creó cliente ${req.body.nombre}`,
       ]
     );
 
@@ -96,24 +61,7 @@ router.post("/", requireAuth, validate(clienteSchema), async (req, res) => {
   }
 });
 
-router.get("/", requireAuth, async (req, res) => {
-  try {
-    const authUser = req.authUser;
-
-    const result = await pool.query(
-      "SELECT * FROM clientes WHERE empresa_id = $1 ORDER BY id DESC",
-      [authUser.empresaId]
-    );
-
-    res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al listar clientes",
-      glosa: err.message || err.toString(),
-    });
-  }
-});
+router.get("/", requireAuth, listarDeLaEmpresa("Error al listar clientes", "SELECT * FROM clientes WHERE empresa_id = $1 ORDER BY id DESC"));
 
 router.get("/search", requireAuth, async (req, res) => {
   const { name } = req.query;
@@ -157,34 +105,6 @@ router.get("/:id", requireAuth, async (req, res) => {
 });
 
 router.put("/:id", requireAuth, validate(clienteSchema), async (req, res) => {
-  const {
-    nombre,
-    correo,
-    telefono,
-    direccion,
-    es_empresa = false,
-    nombre_banco = null,
-    numero_cuenta = null,
-    titular_cuenta = null,
-    rut = null,
-    nombre_fantasia = null,
-    giro_actividad_economica = null,
-    nombre_representante = null,
-    cargo_representante = null,
-    correo_representante = null,
-    telefono_representante = null,
-    relacion_representante = null,
-    direccion_calle = null,
-    direccion_numero = null,
-    direccion_ciudad = null,
-    direccion_region = null,
-    sitio_web = null,
-    telefono_corporativo = null,
-    metodo_pago = null,
-    dia_pago = null,
-    moneda = null,
-  } = req.body;
-
   try {
     const authUser = req.authUser;
 
@@ -196,35 +116,7 @@ router.put("/:id", requireAuth, validate(clienteSchema), async (req, res) => {
         direccion_calle=$17, direccion_numero=$18, direccion_ciudad=$19, direccion_region=$20, sitio_web=$21, telefono_corporativo=$22,
         metodo_pago=$23, dia_pago=$24, moneda=$25
       WHERE id=$26 AND empresa_id = $27 RETURNING *`,
-      [
-        nombre,
-        correo,
-        telefono,
-        direccion,
-        es_empresa,
-        nombre_banco,
-        numero_cuenta,
-        titular_cuenta,
-        rut,
-        nombre_fantasia,
-        giro_actividad_economica,
-        nombre_representante,
-        cargo_representante,
-        correo_representante,
-        telefono_representante,
-        relacion_representante,
-        direccion_calle,
-        direccion_numero,
-        direccion_ciudad,
-        direccion_region,
-        sitio_web,
-        telefono_corporativo,
-        metodo_pago,
-        dia_pago,
-        moneda,
-        req.params.id,
-        authUser.empresaId,
-      ]
+      [...valoresDelCliente(req.body), req.params.id, authUser.empresaId]
     );
 
     if (result.rows.length === 0)

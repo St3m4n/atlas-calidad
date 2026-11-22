@@ -1,5 +1,6 @@
 const express = require("express");
 const { pool } = require("../db");
+const { listarDeLaEmpresa } = require("../utils/listados");
 const validate = require("../middleware/validate");
 const { requireAuth, requireAdmin } = require("../middleware/auth");
 const { createUserSchema, updateUserSchema } = require("../validations/users");
@@ -25,28 +26,11 @@ router.post("/", requireAdmin, validate(createUserSchema), async (req, res) => {
   }
 });
 
-router.get("/", requireAuth, async (req, res) => {
-  try {
-    const authUser = req.authUser;
-
-    const result = await pool.query(
-      `SELECT DISTINCT u.id, u.nombre_usuario, u.correo, u.created_at 
+router.get("/", requireAuth, listarDeLaEmpresa("Error al listar usuarios", `SELECT DISTINCT u.id, u.nombre_usuario, u.correo, u.created_at 
        FROM usuarios u
        INNER JOIN empresa_usuarios eu ON eu.usuario_id = u.id
        WHERE eu.empresa_id = $1
-       ORDER BY u.id DESC`,
-      [authUser.empresaId]
-    );
-
-    res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al listar usuarios",
-      glosa: err.message || err.toString(),
-    });
-  }
-});
+       ORDER BY u.id DESC`));
 
 router.get("/:id", requireAuth, async (req, res) => {
   try {

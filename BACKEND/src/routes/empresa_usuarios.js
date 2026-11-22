@@ -1,5 +1,6 @@
 const express = require("express");
 const { pool } = require("../db");
+const { listarDeLaEmpresa } = require("../utils/listados");
 const validate = require("../middleware/validate");
 const { requireAuth, requireAdmin } = require("../middleware/auth");
 const {
@@ -66,13 +67,7 @@ router.post("/", requireAdmin, validate(createEmpresaUsuarioSchema), async (req,
   }
 });
 
-router.get("/", requireAuth, async (req, res) => {
-  try {
-    const authUser = req.authUser;
-
-    const empresaId = authUser.empresaId;
-    const result = await pool.query(
-      `
+router.get("/", requireAuth, listarDeLaEmpresa("Error al listar usuarios", `
       SELECT 
         u.id,
         u.nombre_usuario,
@@ -85,19 +80,7 @@ router.get("/", requireAuth, async (req, res) => {
       LEFT JOIN roles r ON r.id = eu.rol_id
       WHERE eu.empresa_id = $1
       ORDER BY eu.created_at DESC
-    `,
-      [empresaId]
-    );
-
-    res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al listar usuarios",
-      glosa: err.message || err.toString(),
-    });
-  }
-});
+    `));
 
 // DEF-05 (RB-2): solo se entregan vínculos de la empresa del usuario
 router.get("/:id", requireAuth, async (req, res) => {

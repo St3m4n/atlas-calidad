@@ -2,6 +2,7 @@ const express = require("express");
 const multer = require("multer");
 const crypto = require("crypto");
 const { pool } = require("../db");
+const { listarDeLaEmpresa } = require("../utils/listados");
 const validate = require("../middleware/validate");
 const { requireAuth, requireAdmin } = require("../middleware/auth");
 const { createContractSchema, updateContractSchema } = require("../validations/contracts");
@@ -68,12 +69,7 @@ router.post("/", requireAuth, upload.array("files", 10), validate(createContract
   }
 });
 
-router.get("/", requireAuth, async (req, res) => {
-  try {
-    const authUser = req.authUser;
-    const empresaId = authUser.empresaId;
-    const result = await pool.query(
-      `
+router.get("/", requireAuth, listarDeLaEmpresa("Error al listar contratos", `
       SELECT 
         c.id, 
         c.titulo, 
@@ -86,18 +82,7 @@ router.get("/", requireAuth, async (req, res) => {
       INNER JOIN clientes cl ON cl.id = c.cliente_id
       WHERE cl.empresa_id = $1
       ORDER BY c.id DESC
-    `,
-      [empresaId]
-    );
-    res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al listar contratos",
-      glosa: err.message || err.toString(),
-    });
-  }
-});
+    `));
 
 router.get("/estados", requireAuth, async (req, res) => {
   try {
