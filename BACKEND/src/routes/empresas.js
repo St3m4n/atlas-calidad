@@ -1,5 +1,6 @@
 const express = require("express");
 const { pool } = require("../db");
+const { responderError } = require("../middleware/errores");
 const validate = require("../middleware/validate");
 const { requireAuth, requireAdmin } = require("../middleware/auth");
 const {
@@ -34,10 +35,7 @@ router.post("/", registroPublicoOAdministrador, async (req, res) => {
           detalles: errors,
         });
       }
-      return res.status(500).json({
-        error: "Error en la validación",
-        glosa: error.message || error.toString(),
-      });
+      return responderError(res, error, "Error en la validación");
     }
     const { usuario, empresa } = req.body;
     const { nombre_usuario, contrasena_hash, correo: correoUsuario } = usuario;
@@ -66,13 +64,7 @@ router.post("/", registroPublicoOAdministrador, async (req, res) => {
         empresa: empresaResult.rows[0],
       });
     } catch (err) {
-      console.error(err);
-      res
-        .status(500)
-        .json({
-          error: "Error al crear empresa con usuario",
-          glosa: err.message || err.toString(),
-        });
+      return responderError(res, err, "Error al crear empresa con usuario");
     }
   } else {
     try {
@@ -89,10 +81,7 @@ router.post("/", registroPublicoOAdministrador, async (req, res) => {
           detalles: errors,
         });
       }
-      return res.status(500).json({
-        error: "Error en la validación",
-        glosa: error.message || error.toString(),
-      });
+      return responderError(res, error, "Error en la validación");
     }
     const { nombre, direccion = null, telefono = null, correo } = req.body;
     try {
@@ -112,13 +101,7 @@ router.post("/", registroPublicoOAdministrador, async (req, res) => {
 
       res.status(201).json(result.rows[0]);
     } catch (err) {
-      console.error(err);
-      res
-        .status(500)
-        .json({
-          error: "Error al crear empresa",
-          glosa: err.message || err.toString(),
-        });
+      return responderError(res, err, "Error al crear empresa");
     }
   }
 });
@@ -136,13 +119,7 @@ router.get("/", requireAuth, async (req, res) => {
     );
     res.json(result.rows);
   } catch (err) {
-    console.error(err);
-    res
-      .status(500)
-      .json({
-        error: "Error al listar empresas",
-        glosa: err.message || err.toString(),
-      });
+    return responderError(res, err, "Error al listar empresas");
   }
 });
 
@@ -158,13 +135,7 @@ router.get("/:id", requireAuth, async (req, res) => {
       return res.status(404).json({ error: "No encontrado" });
     res.json(result.rows[0]);
   } catch (err) {
-    console.error(err);
-    res
-      .status(500)
-      .json({
-        error: "Error al obtener empresa",
-        glosa: err.message || err.toString(),
-      });
+    return responderError(res, err, "Error al obtener empresa");
   }
 });
 
@@ -193,13 +164,7 @@ router.put("/:id", requireAdmin, validate(updateEmpresaSchema), async (req, res)
 
     res.json(result.rows[0]);
   } catch (err) {
-    console.error(err);
-    res
-      .status(500)
-      .json({
-        error: "Error al actualizar empresa",
-        glosa: err.message || err.toString(),
-      });
+    return responderError(res, err, "Error al actualizar empresa");
   }
 });
 
@@ -232,13 +197,7 @@ router.delete("/:id", requireAdmin, async (req, res) => {
 
     res.json({ deleted: true });
   } catch (err) {
-    console.error(err);
-    res
-      .status(500)
-      .json({
-        error: "Error al eliminar empresa",
-        glosa: err.message || err.toString(),
-      });
+    return responderError(res, err, "Error al eliminar empresa");
   }
 });
 

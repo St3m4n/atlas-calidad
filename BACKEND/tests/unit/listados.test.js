@@ -30,7 +30,7 @@ describe("R-06 listarDeLaEmpresa", () => {
     expect(res.status).not.toHaveBeenCalled();
   });
 
-  test("si la consulta falla responde 500 con el título de la ruta", async () => {
+  test("si la consulta falla responde 500 con el título de la ruta y sin el detalle (R-04)", async () => {
     jest.spyOn(pool, "query").mockRejectedValue(new Error("fallo simulado"));
     jest.spyOn(console, "error").mockImplementation(() => {});
     const res = respuestaSimulada();
@@ -39,5 +39,6 @@ describe("R-06 listarDeLaEmpresa", () => {
 
     expect(res.status).toHaveBeenCalledWith(500);
     expect(res.json.mock.calls[0][0].error).toBe("Error al listar clientes");
+    expect(JSON.stringify(res.json.mock.calls[0][0])).not.toContain("fallo simulado");
   });
 });

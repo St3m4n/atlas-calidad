@@ -1,5 +1,6 @@
 const express = require("express");
 const { pool } = require("../db");
+const { responderError } = require("../middleware/errores");
 const { listarDeLaEmpresa } = require("../utils/listados");
 const validate = require("../middleware/validate");
 const { requireAuth, requireAdmin } = require("../middleware/auth");
@@ -18,11 +19,7 @@ router.post("/", requireAdmin, validate(createUserSchema), async (req, res) => {
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al crear usuario",
-      glosa: err.message || err.toString(),
-    });
+    return responderError(res, err, "Error al crear usuario");
   }
 });
 
@@ -72,11 +69,7 @@ router.get("/:id", requireAuth, async (req, res) => {
     
     res.json(usuario);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al obtener usuario",
-      glosa: err.message || err.toString(),
-    });
+    return responderError(res, err, "Error al obtener usuario");
   }
 });
 
@@ -216,11 +209,7 @@ router.put("/:id", requireAuth, puedeEditarUsuario, validate(updateUserSchema), 
 
     res.json(usuarioResult.rows[0]);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al actualizar usuario",
-      glosa: err.message || err.toString(),
-    });
+    return responderError(res, err, "Error al actualizar usuario");
   }
 });
 
@@ -253,11 +242,7 @@ router.delete("/:id", requireAdmin, async (req, res) => {
 
     res.json({ deleted: true });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Error al eliminar usuario",
-      glosa: err.message || err.toString(),
-    });
+    return responderError(res, err, "Error al eliminar usuario");
   }
 });
 

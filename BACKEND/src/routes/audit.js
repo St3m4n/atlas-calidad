@@ -1,5 +1,6 @@
 const express = require("express");
 const { pool } = require("../db");
+const { responderError } = require("../middleware/errores");
 const { listarDeLaEmpresa } = require("../utils/listados");
 const { requireAuth } = require("../middleware/auth");
 
@@ -18,8 +19,7 @@ router.post("/", requireAuth, async (req, res) => {
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Error al registrar log", glosa: err.message || err.toString() });
+    return responderError(res, err, "Error al registrar log");
   }
 });
 

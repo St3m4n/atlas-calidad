@@ -1,5 +1,6 @@
 const express = require('express');
 const { pool } = require('../db');
+const { responderError } = require("../middleware/errores");
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const router = express.Router();
 
@@ -16,8 +17,7 @@ router.post('/', requireAdmin, async (req, res) => {
 
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error al crear rol', glosa: err.message || err.toString() });
+    return responderError(res, err, "Error al crear rol");
   }
 });
 
@@ -27,8 +27,7 @@ router.get('/', requireAuth, async (req, res) => {
     const result = await pool.query('SELECT * FROM roles ORDER BY id DESC');
     res.json(result.rows);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error al listar roles', glosa: err.message || err.toString() });
+    return responderError(res, err, "Error al listar roles");
   }
 });
 
@@ -38,8 +37,7 @@ router.get('/:id', requireAuth, async (req, res) => {
     if (result.rows.length === 0) return res.status(404).json({ error: 'No encontrado' });
     res.json(result.rows[0]);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error al obtener rol', glosa: err.message || err.toString() });
+    return responderError(res, err, "Error al obtener rol");
   }
 });
 
@@ -57,8 +55,7 @@ router.put('/:id', requireAdmin, async (req, res) => {
 
     res.json(result.rows[0]);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error al actualizar rol', glosa: err.message || err.toString() });
+    return responderError(res, err, "Error al actualizar rol");
   }
 });
 
@@ -75,8 +72,7 @@ router.delete('/:id', requireAdmin, async (req, res) => {
 
     res.json({ deleted: true });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error al eliminar rol', glosa: err.message || err.toString() });
+    return responderError(res, err, "Error al eliminar rol");
   }
 });
 

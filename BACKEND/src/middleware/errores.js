@@ -12,6 +12,34 @@ const MENSAJES_MULTER = {
   LIMIT_UNEXPECTED_FILE: "Se envió un archivo en un campo que no corresponde o se superó el máximo de archivos",
 };
 
+// DEF-005: errores de PostgreSQL que causan los datos enviados (no fallas del
+// servidor). Se responden con 400 o 409 y un mensaje propio, sin el texto de
+// PostgreSQL, que incluía nombres de tablas, columnas y restricciones (R-04).
+const ERRORES_BD = {
+  "22P02": [400, "Algún dato no tiene el formato esperado (por ejemplo, un número)"],
+  "22001": [400, "Algún dato supera el largo permitido"],
+  "22003": [400, "Algún número está fuera del rango permitido"],
+  "22007": [400, "Alguna fecha no tiene un formato válido"],
+  "22008": [400, "Alguna fecha está fuera del rango permitido"],
+  "23502": [400, "Falta un dato obligatorio"],
+  "23503": [409, "No es posible: el registro está relacionado con otros datos (por ejemplo, un cliente con contratos)"],
+  "23505": [409, "Ya existe un registro con esos datos (por ejemplo, el mismo correo)"],
+};
+
+const GLOSA_ERROR_INTERNO = "Ocurrió un problema al procesar la solicitud. Intenta nuevamente";
+
+// R-04: única forma en que las rutas responden un error inesperado. El detalle
+// técnico queda en el registro del servidor y el cliente recibe un mensaje genérico.
+function responderError(res, err, titulo = "Error interno") {
+  const conocido = ERRORES_BD[err?.code];
+  if (conocido) {
+    const [estado, glosa] = conocido;
+    return res.status(estado).json({ error: titulo, glosa });
+  }
+  console.error(err);
+  return res.status(500).json({ error: titulo, glosa: GLOSA_ERROR_INTERNO });
+}
+
 // Express reconoce un manejador de errores porque recibe 4 parámetros
 function manejarErrores(err, req, res, next) {
   // Si la respuesta ya empezó a enviarse, solo Express puede cerrarla bien
@@ -42,11 +70,7 @@ function manejarErrores(err, req, res, next) {
     });
   }
 
-  console.error(err);
-  return res.status(500).json({
-    error: "Error interno",
-    glosa: "Ocurrió un problema al procesar la solicitud. Intenta nuevamente",
-  });
+  return responderError(res, err);
 }
 
-module.exports = { manejarErrores };
+module.exports = { manejarErrores, responderError };
