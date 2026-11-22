@@ -27,6 +27,10 @@ sed "s/\\\\connect $POSTGRES_DB/\\\\c $POSTGRES_DB/g" > "$PROCESSED_DUMP"
 echo "Cargando dump procesado en la base de datos $POSTGRES_DB..."
 psql -v ON_ERROR_STOP=0 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" < "$PROCESSED_DUMP"
 
+# R-03: las contraseñas de las cuentas de ejemplo quedan con hash bcrypt
+echo "Aplicando migracion-bcrypt.sql..."
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" -f /tmp/migracion-bcrypt.sql
+
 # Verificar que las tablas se crearon
 echo "Verificando tablas creadas..."
 TABLE_COUNT=$(psql -t -A --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';")
