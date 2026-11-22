@@ -22,7 +22,6 @@ import { toast } from "sonner";
 export default function ContratoCompartido() {
   const { token } = useParams();
   const navigate = useNavigate();
-  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:4451";
 
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -49,12 +48,10 @@ export default function ContratoCompartido() {
       setContrato(data);
       setVerified(true);
 
-      // Cargar archivos
-      const filesResponse = await api.get(
-        `/public/contratos/${token}/files?password=${encodeURIComponent(
-          password
-        )}`
-      );
+      // Cargar archivos (R-08: la contraseña va en el cuerpo, no en la URL)
+      const filesResponse = await api.post(`/public/contratos/${token}/files`, {
+        password,
+      });
       setFiles(filesResponse.data || []);
 
       toast.success("Acceso autorizado");
@@ -70,11 +67,28 @@ export default function ContratoCompartido() {
     }
   };
 
-  const handleViewFile = (fileId) => {
-    const url = `${apiUrl}/public/contratos/${token}/file/${fileId}?password=${encodeURIComponent(
-      password
-    )}`;
-    window.open(url, "_blank");
+  // R-08: el PDF se pide con POST (contraseña en el cuerpo) y se abre desde
+  // memoria; la pestaña se abre antes de la petición para que el navegador
+  // no la bloquee como ventana emergente
+  const handleViewFile = async (fileId) => {
+    const ventana = window.open("", "_blank");
+    try {
+      const { data } = await api.post(
+        `/public/contratos/${token}/file/${fileId}`,
+        { password },
+        { responseType: "blob" }
+      );
+      const url = URL.createObjectURL(new Blob([data], { type: "application/pdf" }));
+      if (ventana) {
+        ventana.location.href = url;
+      } else {
+        window.open(url, "_blank");
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch {
+      ventana?.close();
+      toast.error("No se pudo abrir el archivo");
+    }
   };
 
   if (!verified) {

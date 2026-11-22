@@ -3,9 +3,13 @@
 const express = require("express");
 const request = require("supertest");
 const rateLimit = require("express-rate-limit");
-const { opcionesLimiteGeneral, opcionesLimiteLogin } = require("../../src/middleware/limites");
+const {
+  opcionesLimiteGeneral,
+  opcionesLimiteLogin,
+  opcionesLimiteEnlace,
+} = require("../../src/middleware/limites");
 
-const variables = ["LIMITE_PETICIONES_POR_MINUTO", "LIMITE_LOGIN_FALLIDOS"];
+const variables = ["LIMITE_PETICIONES_POR_MINUTO", "LIMITE_LOGIN_FALLIDOS", "LIMITE_ENLACE_FALLIDOS"];
 const originales = {};
 
 beforeEach(() => {
@@ -53,6 +57,17 @@ test("El límite de inicio de sesión cuenta por IP y nombre de usuario", () => 
   expect(clave).toBe("10.0.0.7:admin");
   expect(otraCuenta).not.toBe(clave);
   expect(keyGenerator({ ip: "10.0.0.7", body: {} })).toBe("10.0.0.7:");
+});
+
+test("R-08: el límite del contrato compartido cuenta por IP y enlace (20 cada 15 minutos)", () => {
+  const opciones = opcionesLimiteEnlace();
+  expect(opciones.limit).toBe(20);
+  expect(opciones.windowMs).toBe(15 * 60 * 1000);
+  expect(opciones.skipSuccessfulRequests).toBe(true);
+  expect(opciones.keyGenerator({ ip: "10.0.0.7", params: { token: "abc" } })).toBe("10.0.0.7:abc");
+  expect(opciones.keyGenerator({ ip: "10.0.0.7", params: {} })).toBe("10.0.0.7:");
+  process.env.LIMITE_ENLACE_FALLIDOS = "7";
+  expect(opcionesLimiteEnlace().limit).toBe(7);
 });
 
 test("Al superar el límite general la API responde 429 con un mensaje en español", async () => {

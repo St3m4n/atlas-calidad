@@ -7,3 +7,9 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 UPDATE usuarios
 SET contrasena_hash = crypt(contrasena_hash, gen_salt('bf', 10))
 WHERE contrasena_hash NOT LIKE '$2%';
+
+-- R-08 / DEF-006: las contraseñas de los enlaces de contratos compartidos
+-- también pasan a hash bcrypt (con el mismo cuidado de no tocar las que ya lo son).
+UPDATE contratos
+SET share_password_hash = crypt(share_password_hash, gen_salt('bf', 10))
+WHERE share_password_hash IS NOT NULL AND share_password_hash NOT LIKE '$2%';

@@ -48,4 +48,21 @@ function opcionesLimiteLogin() {
   };
 }
 
-module.exports = { opcionesLimiteGeneral, opcionesLimiteLogin };
+// Contrato compartido (R-08): 20 contraseñas fallidas cada 15 minutos por IP y enlace,
+// para que no se pueda adivinar la contraseña de un enlace probando muchas
+function opcionesLimiteEnlace() {
+  return {
+    windowMs: QUINCE_MINUTOS,
+    limit: leerEntero("LIMITE_ENLACE_FALLIDOS", 20),
+    skipSuccessfulRequests: true,
+    standardHeaders: "draft-8",
+    legacyHeaders: false,
+    keyGenerator: (req) => `${ipKeyGenerator(req.ip)}:${req.params.token || ""}`,
+    message: {
+      error: "Demasiados intentos",
+      glosa: "Demasiadas contraseñas incorrectas para este enlace. Espera 15 minutos y vuelve a intentarlo",
+    },
+  };
+}
+
+module.exports = { opcionesLimiteGeneral, opcionesLimiteLogin, opcionesLimiteEnlace };
