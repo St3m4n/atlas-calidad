@@ -2,7 +2,7 @@ const express = require("express");
 const { pool } = require("../db");
 const jwt = require("jsonwebtoken");
 const validate = require("../middleware/validate");
-const requireAdmin = require("../middleware/requireAdmin");
+const { requireAuth, requireAdmin } = require("../middleware/auth");
 const { createUserSchema, updateUserSchema } = require("../validations/users");
 const { hashContrasena } = require("../utils/contrasenas");
 
@@ -22,7 +22,8 @@ function getUserFromAuthHeader(req) {
   }
 }
 
-router.post("/", validate(createUserSchema), async (req, res) => {
+// DEF-001: solo un administrador puede crear usuarios (antes no exigía sesión)
+router.post("/", requireAdmin, validate(createUserSchema), async (req, res) => {
   const { nombre_usuario, contrasena_hash, correo } = req.body;
   try {
     const result = await pool.query(
@@ -123,19 +124,40 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.put("/:id", validate(updateUserSchema), async (req, res) => {
+// DEF-05 (RB-5): un administrador edita a los usuarios de su empresa; cualquier
+// otro usuario solo puede editar su propia cuenta. Se revisa antes de validar los datos.
+function puedeEditarUsuario(req, res, next) {
+  const { authUser } = req;
+  const esAdministrador = authUser.rolNombre === "administrador";
+  const esSuCuenta = Number(authUser.usuarioId) === Number(req.params.id);
+  if (!esAdministrador && !esSuCuenta) {
+    return res.status(403).json({
+      error: "Acción no permitida",
+      glosa: "Solo un administrador puede editar a otros usuarios",
+    });
+  }
+  return next();
+}
+
+router.put("/:id", requireAuth, puedeEditarUsuario, validate(updateUserSchema), async (req, res) => {
   const { nombre_usuario, contrasena_hash, correo, rol_id } = req.body;
   try {
-    const authUser = getUserFromAuthHeader(req);
-    if (!authUser || !authUser.empresaId) {
-      return res.status(401).json({
-        error: "No autorizado",
-        glosa: "Token inválido o sin empresa asociada",
-      });
+    const authUser = req.authUser;
+
+    // DEF-05: el usuario editado debe pertenecer a la empresa de quien edita
+    // (antes un administrador de otra empresa podía cambiar su correo o su contraseña)
+    const vinculo = await pool.query(
+      "SELECT rol_id FROM empresa_usuarios WHERE usuario_id = $1 AND empresa_id = $2",
+      [req.params.id, authUser.empresaId]
+    );
+    if (vinculo.rows.length === 0) {
+      return res.status(404).json({ error: "No encontrado" });
     }
 
-    // Verificar si se está intentando cambiar el rol
-    if (rol_id !== undefined) {
+    // Verificar si se está intentando cambiar el rol (enviar el mismo rol no es un cambio:
+    // el formulario de la propia cuenta lo envía junto con el correo)
+    const cambiaRol = rol_id !== undefined && Number(rol_id) !== Number(vinculo.rows[0].rol_id);
+    if (cambiaRol) {
       // Verificar si el usuario está intentando cambiar su propio rol
       if (authUser.usuarioId && Number(authUser.usuarioId) === Number(req.params.id)) {
         return res.status(400).json({
@@ -197,8 +219,8 @@ router.put("/:id", validate(updateUserSchema), async (req, res) => {
         return res.status(404).json({ error: "No encontrado" });
     }
 
-    // Actualizar rol si se proporciona
-    if (rol_id !== undefined) {
+    // Actualizar rol si cambió
+    if (cambiaRol) {
       const empresaUsuarioResult = await pool.query(
         `SELECT id FROM empresa_usuarios WHERE usuario_id = $1 AND empresa_id = $2`,
         [req.params.id, authUser.empresaId]
@@ -232,7 +254,7 @@ router.put("/:id", validate(updateUserSchema), async (req, res) => {
       "INSERT INTO auditoria (usuario_id, accion) VALUES ($1, $2)",
       [
         authUser?.nombreUsuario || null,
-        `USUARIOS_ACTUALIZAR: actualizó usuario ID ${req.params.id}${rol_id !== undefined ? ` y rol a ${rol_id}` : ""}`,
+        `USUARIOS_ACTUALIZAR: actualizó usuario ID ${req.params.id}${cambiaRol ? ` y rol a ${rol_id}` : ""}`,
       ]
     );
 
