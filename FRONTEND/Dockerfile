@@ -7,17 +7,16 @@ ARG VITE_API_URL=http://localhost:4000
 
 COPY package*.json ./
 
-# Instalación de dependencias (con versiones fijas en los paquetes extra)
-RUN rm -rf node_modules package-lock.json && \
-    npm install && \
-    npm install @rollup/rollup-linux-x64-gnu@4 --save-optional && \
-    npm rebuild esbuild
+# Instala exactamente las versiones del package-lock.json, ya revisadas (npm audit) y
+# con al menos dos semanas de publicadas. Antes se borraba el lockfile y npm install
+# tomaba en cada construcción la versión más reciente de cada paquete.
+# El lockfile incluye los binarios de Linux de rollup y esbuild.
+RUN npm ci
 
+# .dockerignore deja fuera node_modules, dist y .env de la carpeta local
 COPY . .
 
 ENV VITE_API_URL=${VITE_API_URL}
-
-RUN rm -rf node_modules/.cache && npm rebuild esbuild --force
 
 RUN npm run build
 
